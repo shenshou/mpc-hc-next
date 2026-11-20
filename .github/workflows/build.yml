@@ -1,0 +1,93 @@
+name: MPC-HC Windows Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mpc-hc-windows-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build x86 and x64 (Release)
+    runs-on: windows-2022
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out source and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install NASM
+        shell: pwsh
+        run: |
+          choco install nasm --yes --no-progress
+          $nasm = Get-Command nasm.exe -ErrorAction Stop
+          Write-Host "NASM: $($nasm.Source)"
+          nasm -v
+
+      - name: Configure Visual Studio and Windows SDK
+        shell: pwsh
+        run: |
+          $programFilesX86 = [Environment]::GetFolderPath('ProgramFilesX86')
+          $vswhere = Join-Path $programFilesX86 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path $vswhere)) {
+            throw "vswhere.exe was not found: $vswhere"
+          }
+
+          $vsPath = & $vswhere -latest -products '*' -requires Microsoft.Component.MSBuild Microsoft.VisualStudio.Component.VC.ATLMFC Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vsPath -or -not (Test-Path (Join-Path $vsPath 'Common7\Tools\vsdevcmd.bat'))) {
+            throw 'A Visual Studio installation with MSBuild, ATL/MFC and x86/x64 C++ tools was not found.'
+          }
+
+          $sdkRoot = Join-Path $programFilesX86 'Windows Kits\10\Include'
+          $sdk = Get-ChildItem $sdkRoot -Directory |
+            Where-Object { $_.Name -match '^10\.0\.\d+\.0$' } |
+            Sort-Object { [version]$_.Name } -Descending |
+            Select-Object -First 1
+
+          if (-not $sdk) {
+            throw "No Windows 10/11 SDK installation was found under $sdkRoot"
+          }
+
+          @(
+            '@ECHO OFF'
+            ('SET "MPCHC_VS_PATH=' + $vsPath + '"')
+            ('SET "MPCHC_WINSDK_VER=' + $sdk.Name + '"')
+          ) | Set-Content -Path build.user.bat -Encoding ASCII
+
+          "MPCHC_VS_PATH=$vsPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "MPCHC_WINSDK_VER=$($sdk.Name)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Visual Studio: $vsPath"
+          Write-Host "Windows SDK: $($sdk.Name)"
+
+      - name: Build MPC-HC
+        shell: cmd
+        run: build.bat Build Both MPCHC Release Silent Nocolors
+
+      - name: Upload build output and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpc-hc-windows-build
+          path: |
+            bin/mpc-hc_x86/**
+            bin/mpc-hc_x64/**
+            bin/logs/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Write build summary
+        if: always()
+        shell: pwsh
+        run: |
+          '## MPC-HC Windows build' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Source commit: ${{ github.sha }}' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Runner: windows-2022' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Target: x86 + x64 / Release' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- No GitHub Release is created by this workflow.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
