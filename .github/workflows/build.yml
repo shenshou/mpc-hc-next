@@ -141,14 +141,17 @@ jobs:
             Write-Host "Patched $($matches.Count) NASM invocation(s) in $($item.Path) ($($item.Label))."
           }
 
-          # The batch wrapper performs an initial PATH-based dependency check.
-          # Keep NASM on PATH there; actual MSBuild assembly commands use NASM_EXE.
+          # build_lavfilters.bat still performs a PATH-based NASM preflight check.
+          # Restore standard Windows command directories as well as pinned NASM
+          # after vsdevcmd, without expanding PATH inside nested parenthesized blocks.
           $scriptPath = 'src/thirdparty/LAVFilters/build_lavfilters.bat'
           $content = Get-Content -LiteralPath $scriptPath -Raw
           $anchor = 'CALL "%TOOLSET%" -no_logo -arch=%TOOLSETARCH%'
           $patch = @'
           CALL "%TOOLSET%" -no_logo -arch=%TOOLSETARCH%
-          IF DEFINED NASM_DIRECTORY SET "PATH=%NASM_DIRECTORY%;%PATH%"
+          SET "PATH=%SystemRoot%\System32;%SystemRoot%;%SystemRoot%\System32\Wbem;%NASM_DIRECTORY%;%PATH%"
+          where.exe xcopy.exe
+          IF ERRORLEVEL 1 EXIT /B 1
           where.exe nasm.exe
           IF ERRORLEVEL 1 EXIT /B 1
           nasm.exe -v
@@ -157,31 +160,12 @@ jobs:
           if (-not $content.Contains($anchor)) {
             throw "Could not find the expected Visual Studio environment initialization in $scriptPath"
           }
-          if ($content.Contains('IF DEFINED NASM_DIRECTORY SET "PATH=%NASM_DIRECTORY%;%PATH%"')) {
-            throw 'The NASM PATH patch is already present; refusing to apply it twice.'
+          if ($content.Contains('where.exe xcopy.exe')) {
+            throw 'The Windows command PATH validation patch is already present; refusing to apply it twice.'
           }
           $content = $content.Replace($anchor, $patch.TrimEnd())
-
-          # Keep PATH validation immediately before both nested MSBuild invocations.
-          $msbuildAnchors = @(
-            '  MSBuild.exe msvc\ffmpeg\avfilter.vcxproj'
-            'MSBuild.exe LAVFilters.sln'
-          )
-          foreach ($msbuildAnchor in $msbuildAnchors) {
-            if (-not $content.Contains($msbuildAnchor)) {
-              throw "Could not find expected MSBuild command: $msbuildAnchor"
-            }
-            $guard = @'
-          IF DEFINED NASM_DIRECTORY SET "PATH=%NASM_DIRECTORY%;%PATH%"
-          where.exe nasm.exe
-          IF ERRORLEVEL 1 EXIT /B 1
-          nasm.exe -v
-          IF ERRORLEVEL 1 EXIT /B 1
-          '@
-            $content = $content.Replace($msbuildAnchor, $guard.TrimEnd() + "`r`n" + $msbuildAnchor)
-          }
           Set-Content -LiteralPath $scriptPath -Value $content -Encoding Ascii -NoNewline
-          Write-Host "Patched $scriptPath for PATH-based preflight checks."
+          Write-Host "Patched $scriptPath to restore Windows system commands and validate xcopy/NASM after Visual Studio setup."
 
       - name: Build MPC-HC
         shell: cmd
