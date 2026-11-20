@@ -135,6 +135,7 @@ jobs:
           $patch = @'
           CALL "%TOOLSET%" -no_logo -arch=%TOOLSETARCH%
           IF DEFINED NASM_DIRECTORY SET "PATH=%NASM_DIRECTORY%;%PATH%"
+          IF EXIST "%SystemRoot%\System32\nasm.exe" SET "PATH=%SystemRoot%\System32;%PATH%"
           where.exe nasm.exe
           IF ERRORLEVEL 1 EXIT /B 1
           nasm.exe -v
@@ -147,6 +148,26 @@ jobs:
             throw 'The NASM PATH patch is already present; refusing to apply it twice.'
           }
           $content = $content.Replace($anchor, $patch.TrimEnd())
+
+          # Re-assert NASM immediately before both nested MSBuild invocations.
+          $msbuildAnchors = @(
+            '  MSBuild.exe msvc\ffmpeg\avfilter.vcxproj'
+            'MSBuild.exe LAVFilters.sln'
+          )
+          foreach ($msbuildAnchor in $msbuildAnchors) {
+            if (-not $content.Contains($msbuildAnchor)) {
+              throw "Could not find expected MSBuild command: $msbuildAnchor"
+            }
+            $guard = @'
+          IF DEFINED NASM_DIRECTORY SET "PATH=%NASM_DIRECTORY%;%PATH%"
+          IF EXIST "%SystemRoot%\System32\nasm.exe" SET "PATH=%SystemRoot%\System32;%PATH%"
+          where.exe nasm.exe
+          IF ERRORLEVEL 1 EXIT /B 1
+          nasm.exe -v
+          IF ERRORLEVEL 1 EXIT /B 1
+          '@
+            $content = $content.Replace($msbuildAnchor, $guard.TrimEnd() + "`r`n" + $msbuildAnchor)
+          }
           Set-Content -LiteralPath $scriptPath -Value $content -Encoding Ascii -NoNewline
           Write-Host "Patched $scriptPath so NASM is restored immediately after vsdevcmd initializes the build environment."
 
