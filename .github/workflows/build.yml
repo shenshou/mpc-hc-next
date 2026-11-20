@@ -59,6 +59,10 @@ jobs:
             $env:PATH = "$nasmDirectory;$env:PATH"
           }
 
+          # Persist the directory for later workflow steps, including the
+          # cmd.exe step that invokes build.bat and MSBuild.
+          $nasmDirectory | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
           Write-Host "NASM: $nasmPath"
           & $nasmPath -v
           if ($LASTEXITCODE -ne 0) {
