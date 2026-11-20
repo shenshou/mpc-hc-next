@@ -62,6 +62,7 @@ jobs:
           # Persist the directory for later workflow steps, including the
           # cmd.exe step that invokes build.bat and MSBuild.
           $nasmDirectory | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          "NASM_DIRECTORY=$nasmDirectory" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
           Write-Host "NASM: $nasmPath"
           & $nasmPath -v
@@ -114,6 +115,7 @@ jobs:
             ('SET "MPCHC_VS_PATH=' + $vsPath + '"')
             ('SET "MPCHC_WINSDK_VER=' + $sdk.Name + '"')
             ('SET "MPCHC_PYTHON=' + $env:MPCHC_PYTHON + '"')
+            ('SET "PATH=' + $env:NASM_DIRECTORY + ';%PATH%"')
           ) | Set-Content -Path build.user.bat -Encoding ASCII
 
           "MPCHC_VS_PATH=$vsPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -123,7 +125,10 @@ jobs:
 
       - name: Build MPC-HC
         shell: cmd
-        run: build.bat Build Both MPCHC Release Silent Nocolors
+        run: |
+          where.exe nasm
+          nasm -v
+          build.bat Build Both MPCHC Release Silent Nocolors
 
       - name: Upload build output and logs
         if: always()
