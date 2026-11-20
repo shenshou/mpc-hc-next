@@ -126,11 +126,35 @@ jobs:
           Write-Host "Visual Studio: $vsPath"
           Write-Host "Windows SDK: $($sdk.Name)"
 
+      - name: Preserve NASM after Visual Studio environment setup
+        shell: pwsh
+        run: |
+          $scriptPath = 'src/thirdparty/LAVFilters/build_lavfilters.bat'
+          $content = Get-Content -LiteralPath $scriptPath -Raw
+          $anchor = 'CALL "%TOOLSET%" -no_logo -arch=%TOOLSETARCH%'
+          $patch = @'
+CALL "%TOOLSET%" -no_logo -arch=%TOOLSETARCH%
+IF DEFINED NASM_DIRECTORY SET "PATH=%NASM_DIRECTORY%;%PATH%"
+where.exe nasm.exe
+IF ERRORLEVEL 1 EXIT /B 1
+nasm.exe -v
+IF ERRORLEVEL 1 EXIT /B 1
+'@
+          if (-not $content.Contains($anchor)) {
+            throw "Could not find the expected Visual Studio environment initialization in $scriptPath"
+          }
+          if ($content.Contains('IF DEFINED NASM_DIRECTORY SET "PATH=%NASM_DIRECTORY%;%PATH%"')) {
+            throw 'The NASM PATH patch is already present; refusing to apply it twice.'
+          }
+          $content = $content.Replace($anchor, $patch.TrimEnd())
+          Set-Content -LiteralPath $scriptPath -Value $content -Encoding Ascii -NoNewline
+          Write-Host "Patched $scriptPath so NASM is restored immediately after vsdevcmd initializes the build environment."
+
       - name: Build MPC-HC
         shell: cmd
         run: |
-          where.exe nasm
-          nasm -v
+          where.exe nasm.exe
+          nasm.exe -v
           build.bat Build Both MPCHC Release Silent Nocolors
 
       - name: Upload build output and logs
