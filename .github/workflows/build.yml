@@ -28,8 +28,7 @@ jobs:
         run: |
           choco install nasm --yes --no-progress
 
-          # Chocolatey may update the machine PATH without refreshing this
-          # already-running PowerShell process.
+          # Refresh this PowerShell process after Chocolatey updates the machine PATH.
           $chocoProfile = Join-Path $env:ChocolateyInstall 'helpers\chocolateyProfile.psm1'
           if (Test-Path $chocoProfile) {
             Import-Module $chocoProfile -Force
@@ -54,18 +53,22 @@ jobs:
             throw 'NASM installation completed, but nasm.exe could not be located. Check the Chocolatey install log and package contents.'
           }
 
+          # Make NASM available even if a later Visual Studio environment setup
+          # replaces or sanitizes PATH in nested batch/MSBuild processes.
+          $stableNasmPath = Join-Path $env:windir 'System32\nasm.exe'
+          Copy-Item -LiteralPath $nasmPath -Destination $stableNasmPath -Force
+
           $nasmDirectory = Split-Path -Parent $nasmPath
           if (($env:PATH -split ';') -notcontains $nasmDirectory) {
             $env:PATH = "$nasmDirectory;$env:PATH"
           }
 
-          # Persist the directory for later workflow steps, including the
-          # cmd.exe step that invokes build.bat and MSBuild.
           $nasmDirectory | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
           "NASM_DIRECTORY=$nasmDirectory" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-          Write-Host "NASM: $nasmPath"
-          & $nasmPath -v
+          Write-Host "Installed NASM: $nasmPath"
+          Write-Host "Stable NASM location: $stableNasmPath"
+          & $stableNasmPath -v
           if ($LASTEXITCODE -ne 0) {
             throw "NASM version check failed with exit code $LASTEXITCODE"
           }
