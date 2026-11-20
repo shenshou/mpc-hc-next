@@ -69,6 +69,22 @@ jobs:
             throw "NASM version check failed with exit code $LASTEXITCODE"
           }
 
+      - name: Set up Python and translation dependency
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python translation dependency
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install polib
+          $pythonPath = (Get-Command python.exe -ErrorAction Stop).Source
+          $pythonDirectory = Split-Path -Parent $pythonPath
+          "MPCHC_PYTHON=$pythonDirectory" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Python: $pythonPath"
+          python -c "import polib; print('polib:', polib.__version__)"
+
       - name: Configure Visual Studio and Windows SDK
         shell: pwsh
         run: |
@@ -97,6 +113,7 @@ jobs:
             '@ECHO OFF'
             ('SET "MPCHC_VS_PATH=' + $vsPath + '"')
             ('SET "MPCHC_WINSDK_VER=' + $sdk.Name + '"')
+            ('SET "MPCHC_PYTHON=' + $env:MPCHC_PYTHON + '"')
           ) | Set-Content -Path build.user.bat -Encoding ASCII
 
           "MPCHC_VS_PATH=$vsPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
