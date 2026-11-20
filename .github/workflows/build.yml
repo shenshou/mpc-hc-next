@@ -95,6 +95,11 @@ jobs:
             throw "No Windows 10/11 SDK installation was found under $sdkRoot"
           }
 
+          # Preserve the runner's pre-Visual-Studio PATH. The build scripts invoke
+          # vsdevcmd from nested batch files; reusing an already-expanded VS PATH
+          # can duplicate entries until cmd.exe truncates or rejects commands.
+          "MPCHC_BASE_PATH=$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
           @(
             '@ECHO OFF'
             ('SET "MPCHC_VS_PATH=' + $vsPath + '"')
@@ -148,6 +153,8 @@ jobs:
           $content = Get-Content -LiteralPath $scriptPath -Raw
           $anchor = 'CALL "%TOOLSET%" -no_logo -arch=%TOOLSETARCH%'
           $patch = @'
+          REM Start each nested VS environment from the runner's clean baseline PATH.
+          SET "PATH=%MPCHC_BASE_PATH%"
           CALL "%TOOLSET%" -no_logo -arch=%TOOLSETARCH%
           SET "PATH=%SystemRoot%\System32;%SystemRoot%;%SystemRoot%\System32\Wbem;%NASM_DIRECTORY%;%PATH%"
           where.exe xcopy.exe
