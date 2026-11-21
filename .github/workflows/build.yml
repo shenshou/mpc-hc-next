@@ -221,12 +221,51 @@ jobs:
           build.bat Build Both MPCHC Release Packages Silent Nocolors
           if errorlevel 1 exit /b %errorlevel%
 
+      - name: Convert upstream portable 7z packages to ZIP
+        shell: pwsh
+        run: |
+          foreach ($arch in @('x86', 'x64')) {
+            $source = @(Get-ChildItem -LiteralPath bin -File -Filter "MPC-HC.*.$arch.7z" |
+              Where-Object { $_.Name -notlike '*.pdb.7z' })
+            if ($source.Count -ne 1) {
+              throw "Expected exactly one upstream $arch portable 7z package, found $($source.Count)."
+            }
+
+            $baseName = [IO.Path]::GetFileNameWithoutExtension($source[0].Name)
+            $stageRoot = Join-Path $env:RUNNER_TEMP "portable-$arch"
+            $zipPath = Join-Path (Resolve-Path bin).Path "$baseName.zip"
+            if (Test-Path -LiteralPath $stageRoot) {
+              Remove-Item -LiteralPath $stageRoot -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path $stageRoot | Out-Null
+
+            & 7z.exe x $source[0].FullName "-o$stageRoot" -y
+            if ($LASTEXITCODE -ne 0) {
+              throw "Could not extract intermediate package: $($source[0].Name)"
+            }
+            if (-not (Test-Path -LiteralPath (Join-Path $stageRoot $baseName) -PathType Container)) {
+              throw "Expected portable package directory was not extracted: $baseName"
+            }
+
+            Push-Location $stageRoot
+            try {
+              & 7z.exe a -tzip $zipPath $baseName -r
+              if ($LASTEXITCODE -ne 0) {
+                throw "Could not create ZIP portable package: $baseName.zip"
+              }
+            }
+            finally {
+              Pop-Location
+            }
+            Write-Host "Created $zipPath"
+          }
+
       - name: Verify x86/x64 portable archives and installers
         shell: pwsh
         run: |
           $expected = @(
-            @{ Pattern = 'MPC-HC.*.x86.7z'; Kind = 'x86 portable archive' },
-            @{ Pattern = 'MPC-HC.*.x64.7z'; Kind = 'x64 portable archive' },
+            @{ Pattern = 'MPC-HC.*.x86.zip'; Kind = 'x86 portable ZIP' },
+            @{ Pattern = 'MPC-HC.*.x64.zip'; Kind = 'x64 portable ZIP' },
             @{ Pattern = 'MPC-HC.*.x86.exe'; Kind = 'x86 installer' },
             @{ Pattern = 'MPC-HC.*.x64.exe'; Kind = 'x64 installer' }
           )
@@ -243,8 +282,8 @@ jobs:
           }
 
           $archives = @(
-            Get-ChildItem -LiteralPath bin -File -Filter 'MPC-HC.*.x86.7z'
-            Get-ChildItem -LiteralPath bin -File -Filter 'MPC-HC.*.x64.7z'
+            Get-ChildItem -LiteralPath bin -File -Filter 'MPC-HC.*.x86.zip'
+            Get-ChildItem -LiteralPath bin -File -Filter 'MPC-HC.*.x64.zip'
           )
           foreach ($archive in $archives) {
             & 7z.exe t $archive.FullName
@@ -274,7 +313,7 @@ jobs:
           '- Source commit: ${{ github.sha }}' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           '- Runner: windows-2022' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           '- Target: x86 + x64 / Release' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          '- Packages: separate x86/x64 portable 7z archives and installers' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Packages: separate x86/x64 portable ZIP archives and installers' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           '- No GitHub Release is created by this workflow.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 ) { 'mpc-hc64.exe' } else { 'mpc-hc.exe' }
             if (-not ($listing -match [regex]::Escape($expectedExe))) {
@@ -287,8 +326,8 @@ jobs:
         with:
           name: mpc-hc-windows-packages
           path: |
-            bin/MPC-HC.*.x86.7z
-            bin/MPC-HC.*.x64.7z
+            bin/MPC-HC.*.x86.zip
+            bin/MPC-HC.*.x64.zip
             bin/MPC-HC.*.x86.exe
             bin/MPC-HC.*.x64.exe
           if-no-files-found: error
