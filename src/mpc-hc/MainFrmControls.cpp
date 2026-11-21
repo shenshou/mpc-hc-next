@@ -201,6 +201,7 @@ void CMainFrameControls::SetToolbarsSelection(UINT nCS, bool bDelayHide/* = fals
     if (ShowToolbarsSelection()) {
         m_pMainFrame->RecalcLayout();
     }
+    m_pMainFrame->UpdateWindowCornerRounding();
 }
 
 void CMainFrameControls::LoadState()
@@ -724,6 +725,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
 
     if (bRecalcLayout) {
         m_pMainFrame->RecalcLayout();
+        m_pMainFrame->UpdateWindowCornerRounding();
     }
 
     st.bLastCanAutoHideToolbars = bCanAutoHide;
