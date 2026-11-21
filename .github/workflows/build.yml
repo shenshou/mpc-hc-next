@@ -91,11 +91,7 @@ jobs:
           if (-not (Test-Path -LiteralPath $iscc -PathType Leaf)) {
             throw "Inno Setup compiler was not found: $iscc"
           }
-          & $iscc /?
-          if ($LASTEXITCODE -gt 1) {
-            throw "Inno Setup compiler validation failed with exit code $LASTEXITCODE"
-          }
-          Write-Host "7-Zip: $($sevenZip.Source)"
+          Write-Host "7-Zip: $sevenZipPath"
           Write-Host "Inno Setup: $iscc"
 
       - name: Set up Python and translation dependency
@@ -278,6 +274,7 @@ jobs:
           '- Source commit: ${{ github.sha }}' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           '- Runner: windows-2022' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           '- Target: x86 + x64 / Release' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Packages: separate x86/x64 portable 7z archives and installers' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           '- No GitHub Release is created by this workflow.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 ) { 'mpc-hc64.exe' } else { 'mpc-hc.exe' }
             if (-not ($listing -match [regex]::Escape($expectedExe))) {
