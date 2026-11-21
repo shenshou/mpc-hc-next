@@ -257,6 +257,7 @@ CAppSettings::CAppSettings()
     , fEnableEDLEditor(false)
     , hMasterWnd(nullptr)
     , bHideWindowedControls(false)
+    , bAutoHideWindowedControls(false)
     , nJpegQuality(90)
     , bEnableCoverArt(true)
     , nCoverArtSizeLimit(600)
@@ -1033,6 +1034,8 @@ void CAppSettings::SaveSettings(bool write_full_history /* = false */)
     VERIFY(pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_FULLSCREEN_CONTROLS_DELAY, uHideFullscreenControlsDelay));
     VERIFY(pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_FULLSCREEN_DOCKED_PANELS, bHideFullscreenDockedPanels));
     VERIFY(pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_WINDOWED_CONTROLS, bHideWindowedControls));
+    CString settingsSection = ResStr(IDS_R_SETTINGS);
+    VERIFY(pApp->WriteProfileInt(settingsSection, _T("AutoHideWindowedControls"), bAutoHideWindowedControls));
 
     VERIFY(pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_WINDOWED_MOUSE_POINTER, bHideWindowedMousePointer));
 
@@ -1784,6 +1787,8 @@ void CAppSettings::LoadSettings()
     uHideFullscreenControlsDelay = pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_FULLSCREEN_CONTROLS_DELAY, 0);
     bHideFullscreenDockedPanels = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_FULLSCREEN_DOCKED_PANELS, TRUE);
     bHideWindowedControls = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_WINDOWED_CONTROLS, FALSE);
+    CString settingsSection = ResStr(IDS_R_SETTINGS);
+    bAutoHideWindowedControls = !!pApp->GetProfileInt(settingsSection, _T("AutoHideWindowedControls"), FALSE);
 
     bHideWindowedMousePointer = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_WINDOWED_MOUSE_POINTER, TRUE);
 
