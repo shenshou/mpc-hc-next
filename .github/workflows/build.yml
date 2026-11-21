@@ -424,15 +424,35 @@ jobs:
             bin/${{ github.ref_name }}.x64.exe
             bin/${{ github.ref_name }}.x64.zip
 
-      - name: Upload x86/x64 portable and installer packages
+      - name: Upload x86 installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mpc-hc-windows-packages
-          path: |
-            bin/MPC-HC-Next.*.x86.zip
-            bin/MPC-HC-Next.*.x64.zip
-            bin/MPC-HC-Next.*.x86.exe
-            bin/MPC-HC-Next.*.x64.exe
+          name: ${{ env.RELEASE_PREFIX }}.x86.exe
+          path: bin/${{ env.RELEASE_PREFIX }}.x86.exe
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload x86 portable ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.RELEASE_PREFIX }}.x86.zip
+          path: bin/${{ env.RELEASE_PREFIX }}.x86.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload x64 installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.RELEASE_PREFIX }}.x64.exe
+          path: bin/${{ env.RELEASE_PREFIX }}.x64.exe
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload x64 portable ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.RELEASE_PREFIX }}.x64.zip
+          path: bin/${{ env.RELEASE_PREFIX }}.x64.zip
           if-no-files-found: error
           retention-days: 14
 
