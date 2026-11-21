@@ -374,7 +374,8 @@ jobs:
             $expectedRenderer = if ($archive.Name.EndsWith('.x64.zip', [System.StringComparison]::OrdinalIgnoreCase)) { 'MpcVideoRenderer64.ax' } else { 'MpcVideoRenderer.ax' }
             $rendererPattern = 'MPCVR[\\/]+'
             $rendererPattern += [regex]::Escape($expectedRenderer)
-            if (-not [regex]::IsMatch(($listing -join "\`n"), $rendererPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+            $listingText = $listing -join [Environment]::NewLine
+            if (-not [regex]::IsMatch($listingText, $rendererPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
               throw "Portable ZIP $($archive.Name) does not contain MPCVR\$expectedRenderer"
             }
 
