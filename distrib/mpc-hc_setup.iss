@@ -116,7 +116,7 @@
   #define FullAppNameVer = FullAppNameVer + " " + "(64-bit)"
 #endif
 
-#ifexist "..\distrib\mpcvr\{#mpcvr_ax}"
+#ifexist AddBackslash("..\distrib\mpcvr") + mpcvr_ax
 #define INCLUDE_MPCVR = true
 #else
 #define INCLUDE_MPCVR = false
