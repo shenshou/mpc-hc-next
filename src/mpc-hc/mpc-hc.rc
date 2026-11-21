@@ -1199,7 +1199,7 @@ BEGIN
     LTEXT           "Font size:",IDC_STATIC23,187,85,80,8
     COMBOBOX        IDC_COMBO6,315,85,30,61,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Display Current Time",IDC_CHECK13,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,187,99,160,8
-    GROUPBOX        "Window Behavior",IDC_STATIC,181,115,168,99
+    GROUPBOX        "Window & Player UI",IDC_STATIC,181,115,168,99
     CONTROL         "Limit window proportions on resize",IDC_CHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,187,129,160,8
     CONTROL         "Snap to desktop edges",IDC_CHECK9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,187,143,160,8
     CONTROL         "Hide Windowed Controls",IDC_CHECK10,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,187,157,160,8
