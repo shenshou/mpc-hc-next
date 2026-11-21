@@ -371,7 +371,12 @@ jobs:
               throw "Portable ZIP $($archive.Name) does not contain expected executable $expectedExe"
             }
 
-            $expectedRenderer = if ($archive.Name -match '\\.x64\\.zip          }
+            $expectedRenderer = if ($archive.Name.EndsWith('.x64.zip', [System.StringComparison]::OrdinalIgnoreCase)) { 'MpcVideoRenderer64.ax' } else { 'MpcVideoRenderer.ax' }
+            $rendererPattern = 'MPCVR[\\/]+'
+            $rendererPattern += [regex]::Escape($expectedRenderer)
+            if (-not [regex]::IsMatch(($listing -join "\`n"), $rendererPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+              throw "Portable ZIP $($archive.Name) does not contain MPCVR\$expectedRenderer"
+            }
 
       - name: Upload x86/x64 portable and installer packages
         uses: actions/upload-artifact@v4
