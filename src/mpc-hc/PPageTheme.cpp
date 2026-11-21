@@ -54,6 +54,7 @@ CPPageTheme::CPPageTheme()
     , m_fSnapToDesktopEdges(FALSE)
     , m_fLimitWindowProportions(TRUE)
     , m_bHideWindowedControls(FALSE)
+    , m_bAutoHideWindowedControls(FALSE)
     , m_bUseEnhancedTaskBar(TRUE)
     , m_bUseSMTC(FALSE)
     , m_bCustomPresetMenu(FALSE)
@@ -113,6 +114,7 @@ void CPPageTheme::DoDataExchange(CDataExchange* pDX)
     DDX_Check(pDX, IDC_CHECK7, m_fLimitWindowProportions);
     DDX_Check(pDX, IDC_CHECK9, m_fSnapToDesktopEdges);
     DDX_Check(pDX, IDC_CHECK10, m_bHideWindowedControls);
+    DDX_Check(pDX, IDC_AUTOHIDE_WINDOWED_CONTROLS, m_bAutoHideWindowedControls);
     DDX_Check(pDX, IDC_CHECK_ENHANCED_TASKBAR, m_bUseEnhancedTaskBar);
     DDX_Check(pDX, IDC_CHECK11, m_bUseSMTC);
 
@@ -245,6 +247,7 @@ BOOL CPPageTheme::OnInitDialog()
     m_fSnapToDesktopEdges = s.fSnapToDesktopEdges;
     m_fLimitWindowProportions = s.fLimitWindowProportions;
     m_bHideWindowedControls = s.bHideWindowedControls;
+    m_bAutoHideWindowedControls = s.bAutoHideWindowedControls;
     m_bUseEnhancedTaskBar = s.bUseEnhancedTaskBar;
     m_bUseSMTC = s.bUseSMTC;
 
@@ -343,6 +346,10 @@ BOOL CPPageTheme::OnApply()
     s.fSnapToDesktopEdges = m_fSnapToDesktopEdges;
     s.fLimitWindowProportions = m_fLimitWindowProportions;
     s.bHideWindowedControls = m_bHideWindowedControls;
+    s.bAutoHideWindowedControls = !!m_bAutoHideWindowedControls;
+    if (CMainFrame* pMainFrame = AfxGetMainFrame()) {
+        pMainFrame->UpdateControlState(CMainFrame::UPDATE_CONTROLS_VISIBILITY);
+    }
 
     if (s.bUseEnhancedTaskBar != (bool)m_bUseEnhancedTaskBar) {
         s.bUseEnhancedTaskBar = m_bUseEnhancedTaskBar;
