@@ -822,7 +822,7 @@ void CPlayerSeekBar::OnPaint()
         GetClientRect(&clientRect);
         dc.FillSolidRect(&clientRect, CMPCTheme::ContentBGColor);
 
-        const int trackHeight = std::max(2, m_pMainFrame->m_dpi.ScaleY(4));
+        const int trackHeight = std::max<LONG>(2, m_pMainFrame->m_dpi.ScaleY(4));
         CRect trackRect(channelRect);
         trackRect.top = channelRect.CenterPoint().y - trackHeight / 2;
         trackRect.bottom = trackRect.top + trackHeight;
@@ -850,7 +850,7 @@ void CPlayerSeekBar::OnPaint()
 
         auto drawMarker = [&](REFERENCE_TIME pos, COLORREF color) {
             const int x = channelRect.left + ChannelPointFromPosition(pos);
-            const int markerWidth = std::max(1, m_pMainFrame->m_dpi.ScaleX(1));
+            const int markerWidth = std::max<LONG>(1, m_pMainFrame->m_dpi.ScaleX(1));
             const int markerHeight = m_pMainFrame->m_dpi.ScaleY(8);
             CRect marker(x, trackRect.CenterPoint().y - markerHeight / 2,
                          x + markerWidth, trackRect.CenterPoint().y + (markerHeight + 1) / 2);
@@ -884,7 +884,7 @@ void CPlayerSeekBar::OnPaint()
         CRect thumbRect(GetThumbRect());
         m_lastThumbRect = thumbRect;
         if (m_bEnabled && m_bHasDuration) {
-            const int thumbSize = std::max(8, m_pMainFrame->m_dpi.ScaleY(12));
+            const int thumbSize = std::max<LONG>(8, m_pMainFrame->m_dpi.ScaleY(12));
             CRect thumb(0, 0, thumbSize, thumbSize);
             thumb.MoveToXY(channelRect.left + seekPos - thumbSize / 2,
                            channelRect.CenterPoint().y - thumbSize / 2);
