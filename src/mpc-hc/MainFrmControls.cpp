@@ -477,7 +477,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                         }
                         uBottom = 0;
                     }
-                    if (!bCanHideDockedPanels) {
+                    if (!bCanHideDockedPanels && !bWindowedAutoHide) {
                         uTop = uLeft = uRight = 0;
                     }
                     const bool bHoveringExclSeekbar = (bExclSeekbar && exclSeekbarRect.PtInRect(clientPoint));
@@ -615,7 +615,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                     bSetTick = true;
                 }
                 auto it = m_panelZones.find(zone);
-                if (it != m_panelZones.end()) {
+                if (it != m_panelZones.end() && !bWindowedAutoHide) {
                     const auto& panels = it->second;
                     for (const auto panel : panels) {
                         if (m_panels[panel]->IsAutohidden()) {
