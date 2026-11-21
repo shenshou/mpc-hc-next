@@ -461,6 +461,33 @@ jobs:
             Write-Host "$arch installer smoke test passed: $expectedExe and MPCVR\$expectedRenderer"
           }
 
+      - name: Prepare directly extractable portable artifacts
+        shell: pwsh
+        run: |
+          foreach ($arch in @('x86', 'x64')) {
+            $archive = Join-Path (Resolve-Path bin).Path "$env:RELEASE_PREFIX.$arch.zip"
+            $destination = Join-Path (Resolve-Path bin).Path "portable-$arch"
+            if (Test-Path -LiteralPath $destination) {
+              Remove-Item -LiteralPath $destination -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path $destination | Out-Null
+            Expand-Archive -LiteralPath $archive -DestinationPath $destination -Force
+
+            $portableRoots = @(Get-ChildItem -LiteralPath $destination -Directory)
+            if ($portableRoots.Count -ne 1) {
+              throw "Expected one portable root directory for $arch, found $($portableRoots.Count)."
+            }
+            $expectedExe = if ($arch -eq 'x64') { 'mpc-hc64.exe' } else { 'mpc-hc.exe' }
+            $expectedRenderer = if ($arch -eq 'x64') { 'MpcVideoRenderer64.ax' } else { 'MpcVideoRenderer.ax' }
+            foreach ($relativePath in @($expectedExe, "MPCVR\\$expectedRenderer")) {
+              $file = Join-Path $portableRoots[0].FullName $relativePath
+              if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+                throw "Prepared $arch portable artifact is missing: $relativePath"
+              }
+            }
+            Write-Host "Prepared directly extractable $arch portable artifact: $($portableRoots[0].FullName)"
+          }
+
       - name: Create GitHub Release with four independent assets
         id: publish_release
         if: github.ref_type == 'tag'
@@ -478,7 +505,7 @@ jobs:
       - name: Upload x86 installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.RELEASE_PREFIX }}.x86.exe
+          name: ${{ env.RELEASE_PREFIX }}.x86-installer
           path: bin/${{ env.RELEASE_PREFIX }}.x86.exe
           if-no-files-found: error
           retention-days: 14
@@ -486,15 +513,15 @@ jobs:
       - name: Upload x86 portable ZIP artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.RELEASE_PREFIX }}.x86.zip
-          path: bin/${{ env.RELEASE_PREFIX }}.x86.zip
+          name: ${{ env.RELEASE_PREFIX }}.x86-portable
+          path: bin/portable-x86/**
           if-no-files-found: error
           retention-days: 14
 
       - name: Upload x64 installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.RELEASE_PREFIX }}.x64.exe
+          name: ${{ env.RELEASE_PREFIX }}.x64-installer
           path: bin/${{ env.RELEASE_PREFIX }}.x64.exe
           if-no-files-found: error
           retention-days: 14
@@ -502,8 +529,8 @@ jobs:
       - name: Upload x64 portable ZIP artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.RELEASE_PREFIX }}.x64.zip
-          path: bin/${{ env.RELEASE_PREFIX }}.x64.zip
+          name: ${{ env.RELEASE_PREFIX }}.x64-portable
+          path: bin/portable-x64/**
           if-no-files-found: error
           retention-days: 14
 
