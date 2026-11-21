@@ -1845,6 +1845,14 @@ void CMainFrame::UpdateWindowCornerRounding()
     }
 }
 
+void CMainFrame::UpdatePlayerUIAppearance()
+{
+    RecalcLayout();
+    m_wndSeekBar.Invalidate();
+    m_wndToolBar.Invalidate();
+    UpdateWindowCornerRounding();
+}
+
 void CMainFrame::OnSize(UINT nType, int cx, int cy)
 {
     if (nType == SIZE_MINIMIZED) {
