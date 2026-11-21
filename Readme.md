@@ -1,3 +1,55 @@
+# MPC-HC-Next
+
+**MPC-HC-Next** is a customized build of [Media Player Classic - Home Cinema (MPC-HC)](https://github.com/mpc-hc/mpc-hc), with [MPC Video Renderer (MPCVR)](https://github.com/Aleksoid1978/VideoRenderer) integrated into the distribution packages.
+
+The project provides both **x86 and x64** builds, each available as an installer or a portable ZIP package. The goal is to make MPC-HC and the matching MPCVR renderer available together without requiring users to obtain and install the renderer separately.
+
+## MPC-HC-Next.0.1
+
+[Download MPC-HC-Next.0.1](https://github.com/shenshou/mpc-hc-next/releases/tag/MPC-HC-Next.0.1)
+
+### Included components
+
+- **MPC-HC:** 2.8.5
+- **MPC Video Renderer:** 0.11.2.2638
+- **MPCVR source:** [`qwerttvv/Player` community nightly build](https://github.com/qwerttvv/Player/releases/tag/2026.11.05-1209)
+- **MPCVR source commit:** `ca9ca65`
+
+> **MPCVR provenance:** The MPCVR binary bundled with this release comes from a community nightly build published by `qwerttvv/Player`. It is not an official stable release published by the upstream MPC Video Renderer project.
+
+### Download packages
+
+The release provides four packages:
+
+- **x64 installer:** `MPC-HC-Next.0.1.x64.exe`
+- **x64 portable:** `MPC-HC-Next.0.1.x64.zip`
+- **x86 installer:** `MPC-HC-Next.0.1.x86.exe`
+- **x86 portable:** `MPC-HC-Next.0.1.x86.zip`
+
+The installer and portable package for each architecture contain the matching MPCVR binary.
+
+### MPCVR loading behavior
+
+MPC-HC-Next is configured to try the MPCVR binary included in the application directory first. If the bundled renderer cannot be loaded, the player falls back to the MPCVR filter registered in the system, if available.
+
+### Build and dependency information
+
+The project is built with [GitHub Actions](https://github.com/shenshou/mpc-hc-next/actions). The workflow builds both architectures and prepares the installer and portable packages.
+
+The MPCVR archive used by the workflow is pinned to a specific community build and checked against its SHA-256 digest before being extracted:
+
+- **Archive:** `MpcVideoRenderer-0.11.2.2638_git2026.11.03-ca9ca65.zip`
+- **SHA-256:** `acafd66d44c243742ca7fa037f27196a32c8193e70f55a9a98d8c300787a529c`
+- **Workflow:** [`.github/workflows/build.yml`](.github/workflows/build.yml)
+
+To update the bundled MPCVR version, update the pinned archive/version and its SHA-256 value in the workflow, then verify the architecture-specific files and generated packages.
+
+---
+
+## Upstream MPC-HC documentation
+
+The following documentation is retained from the original MPC-HC README.
+
 # Media Player Classic - Home Cinema
 
 Media Player Classic - Home Cinema (MPC-HC) is a free and open-source video and audio player for Windows. It is famous and loved for its simple and effective user interface, providing an excellent user experience. It offers a huge amount of functionality. Being a DirectShow player, it also allows flexibility and extensibility through third party filters.
