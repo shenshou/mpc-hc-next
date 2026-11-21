@@ -1874,6 +1874,9 @@ void CMainFrame::UpdatePlayerUIAppearance()
     RecalcLayout();
     m_wndSeekBar.Invalidate();
     m_wndToolBar.Invalidate();
+    if (m_wndToolBar.m_volctrl.GetSafeHwnd()) {
+        m_wndToolBar.m_volctrl.OnMPCThemeChanged(0, 0);
+    }
     UpdateWindowCornerRounding();
 }
 
