@@ -1191,6 +1191,7 @@ public:
     };
 
     void UpdateControlState(UpdateControlTarget target);
+    void UpdateWindowCornerRounding();
 
     UINT GetNormalPresetCS() const;
     void ApplyTimeOnSeekBarChange();
