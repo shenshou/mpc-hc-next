@@ -99,10 +99,14 @@ jobs:
             throw "Inno Setup compiler was not found: $iscc"
           }
 
-          & $iscc /?
-          if ($LASTEXITCODE -gt 1) {
-            throw "Inno Setup compiler validation failed with exit code $LASTEXITCODE"
+          # ISCC /? prints help but returns exit code 1 on this runner.
+          # The executable's existence is the appropriate pre-build check;
+          # its real compilation result is checked when build.bat runs Packages.
+          $isccVersion = (Get-Item -LiteralPath $iscc).VersionInfo.FileVersion
+          if ([string]::IsNullOrWhiteSpace($isccVersion)) {
+            throw "Could not read Inno Setup compiler version from $iscc"
           }
+          Write-Host "Inno Setup compiler version: $isccVersion"
 
           "SEVENZIP=$sevenZipPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Write-Host "7-Zip: $sevenZipPath"
