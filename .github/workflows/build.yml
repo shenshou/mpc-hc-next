@@ -456,15 +456,12 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Upload raw build output and logs
+      - name: Upload build logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mpc-hc-windows-build-raw
-          path: |
-            bin/mpc-hc_x86/**
-            bin/mpc-hc_x64/**
-            bin/logs/**
+          name: mpc-hc-windows-build-logs
+          path: bin/logs/**
           if-no-files-found: warn
           retention-days: 14
 
