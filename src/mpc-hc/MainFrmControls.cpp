@@ -356,7 +356,12 @@ void CMainFrameControls::UpdateToolbarsVisibility()
     const auto& s = AfxGetAppSettings();
     auto& st = m_controlsVisibilityState;
     const auto ePolicy = s.eHideFullscreenControlsPolicy;
-    const unsigned uTimeout = s.uHideFullscreenControlsDelay;
+    const bool bWindowedAutoHide = s.bAutoHideWindowedControls &&
+                                   !m_pMainFrame->IsFullScreenMainFrame() && !m_pMainFrame->IsFullScreenSeparate();
+    const auto eEffectivePolicy = bWindowedAutoHide
+                                  ? CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_HOVERED : ePolicy;
+    const unsigned uTimeout = bWindowedAutoHide
+                              ? std::max(s.uHideFullscreenControlsDelay, 600u) : s.uHideFullscreenControlsDelay;
 
     CPoint screenPoint;
     //VERIFY(GetCursorPos(&screenPoint));
@@ -366,10 +371,14 @@ void CMainFrameControls::UpdateToolbarsVisibility()
 
     const MLS mls = m_pMainFrame->GetLoadState();
 
-    const bool bCanAutoHide = s.bHideFullscreenControls && (mls == MLS::LOADED || m_bDelayShowNotLoaded) &&
-                              (m_pMainFrame->IsFullScreenMainFrame() || s.bHideWindowedControls && !m_pMainFrame->IsFullScreenSeparate()) &&
-                              ePolicy != CAppSettings::HideFullscreenControlsPolicy::SHOW_NEVER;
-    const bool bCanHideDockedPanels = s.bHideFullscreenDockedPanels;
+    const bool bCanAutoHide = (mls == MLS::LOADED || m_bDelayShowNotLoaded) &&
+                              (m_pMainFrame->IsFullScreenMainFrame()
+                               ? s.bHideFullscreenControls
+                               : (bWindowedAutoHide || (s.bHideFullscreenControls && s.bHideWindowedControls &&
+                                  !m_pMainFrame->IsFullScreenSeparate()))) &&
+                              (bWindowedAutoHide || ePolicy != CAppSettings::HideFullscreenControlsPolicy::SHOW_NEVER);
+    // The independent windowed option only hides the seekbar and player toolbar, never docked panels.
+    const bool bCanHideDockedPanels = !bWindowedAutoHide && s.bHideFullscreenDockedPanels;
 
     bool bEnumedPanelZones = false;
 
@@ -401,7 +410,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
     }
 
     if (m_pMainFrame->IsFullScreenMainFrame() && s.bHideFullscreenControls &&
-            ePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_NEVER) {
+            eEffectivePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_NEVER) {
         // hide completely
         mask.hide(maskAll);
     } else if (bCanAutoHide) {
@@ -437,10 +446,10 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                             while (hWnd && hWnd != m_pMainFrame->m_hWnd) {
                                 auto it = targetParents.find(hWnd);
                                 if (it != targetParents.end()) {
-                                    if (ePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_CURSOR_MOVED) {
+                                    if (eEffectivePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_CURSOR_MOVED) {
                                         mask.show(maskAll);
                                     } else {
-                                        ASSERT(ePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_HOVERED);
+                                        ASSERT(eEffectivePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_HOVERED);
                                         mask.show(it->second);
                                     }
                                 }
@@ -474,7 +483,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                     const bool bHoveringExclSeekbar = (bExclSeekbar && exclSeekbarRect.PtInRect(clientPoint));
                     ret = true;
                     if (clientRect.PtInRect(clientPoint)) {
-                        if (ePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_CURSOR_MOVED) {
+                        if (eEffectivePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_CURSOR_MOVED) {
                             if (!bHoveringExclSeekbar) {
                                 CRect nondockRect(clientRect);
                                 nondockRect.DeflateRect(uLeft, uTop, uRight, uBottom);
@@ -486,7 +495,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                                 }
                             }
                         } else {
-                            ASSERT(ePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_HOVERED);
+                            ASSERT(eEffectivePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_HOVERED);
                             // show hovered
                             auto hoveringZone = [&](unsigned uTargetTop, unsigned uTargetLeft, unsigned uTargetRight, unsigned uTargetBottom) {
                                 DockZone ret = DOCK_NONE;
@@ -522,7 +531,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                 return ret;
             };
             if (!testCapture() && !testHovering() &&
-                    ePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_CURSOR_MOVED &&
+                    eEffectivePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_CURSOR_MOVED &&
                     bOnWindow && !CMouse::PointEqualsImprecise(screenPoint, st.lastShowPoint) &&
                     !m_pMainFrame->m_wndView.Dragging() && uTimeout > 0) {
                 // show when corresponding hide policy is used, not hovering, non-zero timeout, the cursor moved, and not dragging
