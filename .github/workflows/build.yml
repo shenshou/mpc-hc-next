@@ -411,6 +411,7 @@ jobs:
           }
 
       - name: Create GitHub Release with four independent assets
+        id: publish_release
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v3
         with:
@@ -457,7 +458,12 @@ jobs:
           '- Target: x86 + x64 / Release' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           '- Packages: MPC-HC-Next versioned x86/x64 portable ZIP archives and installers' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           if ('${{ github.ref_type }}' -eq 'tag') {
-            '- GitHub Release: created with four independent assets.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            if ('${{ steps.publish_release.outcome }}' -eq 'success') {
+              '- GitHub Release: created with four independent assets.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            }
+            else {
+              '- GitHub Release: publishing step did not succeed; inspect the Release step logs.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            }
           }
           else {
             '- GitHub Release: not created (manual CI build only; push an MPC-HC-Next.* tag to publish).' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
