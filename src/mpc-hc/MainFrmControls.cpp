@@ -360,9 +360,12 @@ void CMainFrameControls::UpdateToolbarsVisibility()
     const auto ePolicy = s.eHideFullscreenControlsPolicy;
     const bool bWindowedAutoHide = s.bAutoHideWindowedControls &&
                                    !m_pMainFrame->IsFullScreenMainFrame() && !m_pMainFrame->IsFullScreenSeparate();
-    const auto eEffectivePolicy = bWindowedAutoHide
+    const bool bLegacyWindowedAutoHide = s.bHideFullscreenControls && s.bHideWindowedControls &&
+                                         !m_pMainFrame->IsFullScreenMainFrame() && !m_pMainFrame->IsFullScreenSeparate();
+    const bool bWindowedAutoHideOnly = bWindowedAutoHide && !bLegacyWindowedAutoHide;
+    const auto eEffectivePolicy = bWindowedAutoHideOnly
                                   ? CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_HOVERED : ePolicy;
-    const unsigned uTimeout = bWindowedAutoHide ? 600u : s.uHideFullscreenControlsDelay;
+    const unsigned uTimeout = bWindowedAutoHideOnly ? 600u : s.uHideFullscreenControlsDelay;
 
     CPoint screenPoint;
     //VERIFY(GetCursorPos(&screenPoint));
@@ -379,7 +382,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                                   !m_pMainFrame->IsFullScreenSeparate()))) &&
                               (bWindowedAutoHide || ePolicy != CAppSettings::HideFullscreenControlsPolicy::SHOW_NEVER);
     // The independent windowed option only hides the seekbar and player toolbar, never docked panels.
-    const bool bCanHideDockedPanels = !bWindowedAutoHide && s.bHideFullscreenDockedPanels;
+    const bool bCanHideDockedPanels = !bWindowedAutoHideOnly && s.bHideFullscreenDockedPanels;
 
     bool bEnumedPanelZones = false;
 
@@ -594,7 +597,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
         }
     }
 
-    if (!bCanHideDockedPanels && !bWindowedAutoHide) {
+    if (!bCanHideDockedPanels && !bWindowedAutoHideOnly) {
         for (const auto& pair : m_panels) {
             if (pair.second->IsAutohidden()) {
                 bRecalcLayout = true;
@@ -616,7 +619,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                     bSetTick = true;
                 }
                 auto it = m_panelZones.find(zone);
-                if (it != m_panelZones.end() && !bWindowedAutoHide) {
+                if (it != m_panelZones.end() && !bWindowedAutoHideOnly) {
                     const auto& panels = it->second;
                     for (const auto panel : panels) {
                         if (m_panels[panel]->IsAutohidden()) {
@@ -698,7 +701,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                     }
                 }
                 if (zone == DOCK_BOTTOM) {
-                    const UINT nHideSelection = bWindowedAutoHide
+                    const UINT nHideSelection = bWindowedAutoHideOnly
                                                 ? (GetEffectiveToolbarsSelection() & ~(CS_SEEKBAR | CS_TOOLBAR))
                                                 : CS_NONE;
                     if (ShowToolbars(nHideSelection)) {
