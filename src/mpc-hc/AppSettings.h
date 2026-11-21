@@ -969,6 +969,7 @@ public:
     HWND            hMasterWnd;
 
     bool            bHideWindowedControls;
+    bool            bAutoHideWindowedControls;
 
     int             nJpegQuality;
 
