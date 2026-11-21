@@ -1940,8 +1940,8 @@ msgid "Display Current Time"
 msgstr "显示当前时间"
 
 msgctxt "IDD_PPAGETHEME_IDC_STATIC"
-msgid "Window Behavior"
-msgstr "窗口行为"
+msgid "Window & Player UI"
+msgstr "窗口与播放器界面"
 
 msgctxt "IDD_PPAGETHEME_IDC_CHECK7"
 msgid "Limit window proportions on resize"
@@ -1954,6 +1954,18 @@ msgstr "吸附到桌面边缘"
 msgctxt "IDD_PPAGETHEME_IDC_CHECK10"
 msgid "Hide Windowed Controls"
 msgstr "隐藏窗口控件"
+
+msgctxt "IDD_PPAGETHEME_IDC_AUTOHIDE_WINDOWED_CONTROLS"
+msgid "Auto-hide windowed controls"
+msgstr "自动隐藏窗口模式下的控制栏"
+
+msgctxt "IDD_PPAGETHEME_IDC_ROUNDED_WINDOW_CORNERS"
+msgid "Round video window corners"
+msgstr "播放器窗口圆角"
+
+msgctxt "IDD_PPAGETHEME_IDC_MODERNZ_CONTROLS"
+msgid "Use ModernZ control style"
+msgstr "使用 ModernZ 控制栏样式"
 
 msgctxt "IDD_PPAGETHEME_IDC_STATIC"
 msgid "Windows Integration"
