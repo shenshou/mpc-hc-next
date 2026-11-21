@@ -357,10 +357,7 @@ BOOL CPPageTheme::OnApply()
     s.bModernZControls = !!m_bModernZControls;
     if (CMainFrame* pMainFrame = AfxGetMainFrame()) {
         pMainFrame->UpdateControlState(CMainFrame::UPDATE_CONTROLS_VISIBILITY);
-        pMainFrame->UpdateWindowCornerRounding();
-        pMainFrame->RecalcLayout();
-        pMainFrame->m_wndSeekBar.Invalidate();
-        pMainFrame->m_wndToolBar.Invalidate();
+        pMainFrame->UpdatePlayerUIAppearance();
     }
 
     if (s.bUseEnhancedTaskBar != (bool)m_bUseEnhancedTaskBar) {
