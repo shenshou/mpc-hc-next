@@ -2,9 +2,12 @@ name: MPC-HC Windows Build
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'MPC-HC-Next.*'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: mpc-hc-windows-build
@@ -332,63 +335,103 @@ jobs:
             Write-Host "Created $zipPath"
           }
 
+      - name: Set release version and rename packages
+        shell: pwsh
+        run: |
+          # Tag pushes define the release version. Manual CI runs use the current
+          # project baseline name without creating a GitHub Release.
+          $releasePrefix = if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $env:GITHUB_REF_NAME
+          } else {
+            'MPC-HC-Next.0.1'
+          }
+
+          if ($releasePrefix -notmatch '^MPC-HC-Next\.\d+(?:\.\d+)*$') {
+            throw "Invalid release tag/name '$releasePrefix'. Expected MPC-HC-Next.<version>."
+          }
+
+          foreach ($arch in @('x86', 'x64')) {
+            foreach ($extension in @('exe', 'zip')) {
+              $sourceFiles = @(Get-ChildItem -LiteralPath bin -File -Filter "MPC-HC.*.$arch.$extension")
+              if ($sourceFiles.Count -ne 1) {
+                throw "Expected exactly one original $arch $extension package, found $($sourceFiles.Count)."
+              }
+
+              $destination = Join-Path (Resolve-Path bin).Path "$releasePrefix.$arch.$extension"
+              if (Test-Path -LiteralPath $destination) {
+                Remove-Item -LiteralPath $destination -Force
+              }
+              Move-Item -LiteralPath $sourceFiles[0].FullName -Destination $destination
+              Write-Host "Package renamed: $($sourceFiles[0].Name) -> $(Split-Path -Leaf $destination)"
+            }
+          }
+
+          "RELEASE_PREFIX=$releasePrefix" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Release/package prefix: $releasePrefix"
+
       - name: Verify x86/x64 portable archives and installers
         shell: pwsh
         run: |
-          $expected = @(
-            @{ Pattern = 'MPC-HC.*.x86.zip'; Kind = 'x86 portable ZIP' },
-            @{ Pattern = 'MPC-HC.*.x64.zip'; Kind = 'x64 portable ZIP' },
-            @{ Pattern = 'MPC-HC.*.x86.exe'; Kind = 'x86 installer' },
-            @{ Pattern = 'MPC-HC.*.x64.exe'; Kind = 'x64 installer' }
-          )
-
-          foreach ($item in $expected) {
-            $files = @(Get-ChildItem -LiteralPath bin -File -Filter $item.Pattern)
-            if ($files.Count -ne 1) {
-              throw "Expected exactly one $($item.Kind) matching '$($item.Pattern)', found $($files.Count)."
+          foreach ($arch in @('x86', 'x64')) {
+            foreach ($extension in @('exe', 'zip')) {
+              $path = Join-Path (Resolve-Path bin).Path "$env:RELEASE_PREFIX.$arch.$extension"
+              if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+                throw "Expected package is missing: $path"
+              }
+              $file = Get-Item -LiteralPath $path
+              if ($file.Length -le 0) {
+                throw "Package is empty: $path"
+              }
+              Write-Host "$($file.Name) ($($file.Length) bytes)"
             }
-            if ($files[0].Length -le 0) {
-              throw "$($item.Kind) is empty: $($files[0].FullName)"
-            }
-            Write-Host "$($item.Kind): $($files[0].Name) ($($files[0].Length) bytes)"
           }
 
-          $archives = @(
-            Get-ChildItem -LiteralPath bin -File -Filter 'MPC-HC.*.x86.zip'
-            Get-ChildItem -LiteralPath bin -File -Filter 'MPC-HC.*.x64.zip'
-          )
-          foreach ($archive in $archives) {
-            & 7z.exe t $archive.FullName
+          foreach ($arch in @('x86', 'x64')) {
+            $archive = Join-Path (Resolve-Path bin).Path "$env:RELEASE_PREFIX.$arch.zip"
+            & 7z.exe t $archive
             if ($LASTEXITCODE -ne 0) {
-              throw "7-Zip integrity test failed: $($archive.Name)"
+              throw "7-Zip integrity test failed: $(Split-Path -Leaf $archive)"
             }
-            $listing = & 7z.exe l -ba $archive.FullName
+            $listing = & 7z.exe l -ba $archive
             if ($LASTEXITCODE -ne 0) {
-              throw "Could not list portable ZIP: $($archive.Name)"
+              throw "Could not list portable ZIP: $(Split-Path -Leaf $archive)"
             }
-            $expectedExe = if ($archive.Name -match '\.x64\.zip$') { 'mpc-hc64.exe' } else { 'mpc-hc.exe' }
+            $expectedExe = if ($arch -eq 'x64') { 'mpc-hc64.exe' } else { 'mpc-hc.exe' }
             if (-not ($listing -match [regex]::Escape($expectedExe))) {
-              throw "Portable ZIP $($archive.Name) does not contain expected executable $expectedExe"
+              throw "Portable ZIP for $arch does not contain expected executable $expectedExe"
             }
 
-            $expectedRenderer = if ($archive.Name.EndsWith('.x64.zip', [System.StringComparison]::OrdinalIgnoreCase)) { 'MpcVideoRenderer64.ax' } else { 'MpcVideoRenderer.ax' }
+            $expectedRenderer = if ($arch -eq 'x64') { 'MpcVideoRenderer64.ax' } else { 'MpcVideoRenderer.ax' }
             $rendererPattern = 'MPCVR[\\/]+'
             $rendererPattern += [regex]::Escape($expectedRenderer)
             $listingText = $listing -join [Environment]::NewLine
             if (-not [regex]::IsMatch($listingText, $rendererPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
-              throw "Portable ZIP $($archive.Name) does not contain MPCVR\$expectedRenderer"
+              throw "Portable ZIP for $arch does not contain MPCVR\\$expectedRenderer"
             }
           }
+
+      - name: Create GitHub Release with four independent assets
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          fail_on_unmatched_files: true
+          files: |
+            bin/${{ github.ref_name }}.x86.exe
+            bin/${{ github.ref_name }}.x86.zip
+            bin/${{ github.ref_name }}.x64.exe
+            bin/${{ github.ref_name }}.x64.zip
 
       - name: Upload x86/x64 portable and installer packages
         uses: actions/upload-artifact@v4
         with:
           name: mpc-hc-windows-packages
           path: |
-            bin/MPC-HC.*.x86.zip
-            bin/MPC-HC.*.x64.zip
-            bin/MPC-HC.*.x86.exe
-            bin/MPC-HC.*.x64.exe
+            bin/MPC-HC-Next.*.x86.zip
+            bin/MPC-HC-Next.*.x64.zip
+            bin/MPC-HC-Next.*.x86.exe
+            bin/MPC-HC-Next.*.x64.exe
           if-no-files-found: error
           retention-days: 14
 
@@ -412,5 +455,10 @@ jobs:
           '- Source commit: ${{ github.sha }}' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           '- Runner: windows-2022' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           '- Target: x86 + x64 / Release' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          '- Packages: separate x86/x64 portable ZIP archives and installers' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          '- No GitHub Release is created by this workflow.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Packages: MPC-HC-Next versioned x86/x64 portable ZIP archives and installers' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          if ('${{ github.ref_type }}' -eq 'tag') {
+            '- GitHub Release: created with four independent assets.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          }
+          else {
+            '- GitHub Release: not created (manual CI build only; push an MPC-HC-Next.* tag to publish).' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          }
