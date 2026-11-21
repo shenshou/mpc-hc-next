@@ -487,7 +487,7 @@ void CVolumeCtrl::OnMouseMove(UINT nFlags, CPoint point)
 {
     checkHover(point);
 
-    if (AppIsThemeLoaded() || (AfxGetAppSettings().bModernZControls && m_bDrag)) {
+    if ((AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls) && m_bDrag) {
         updateModernVolCtrl(point);
     } else {
         CSliderCtrl::OnMouseMove(nFlags, point);
