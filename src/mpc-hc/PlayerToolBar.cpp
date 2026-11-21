@@ -809,19 +809,20 @@ void drawButtonBG(NMCUSTOMDRAW nmcd, COLORREF c, bool rounded)
     //and redesigning toolbar icons to be centered vs the old MFC style of "upper left" alignment
     //br.DeflateRect(0, 0, 1, 1); //we aren't offsetting the button when pressed, so try to center better
 
-    CBrush fb;
-    fb.CreateSolidBrush(c);
-    CPen border(PS_SOLID, 1, CMPCTheme::PlayerButtonBorderColor);
-    CBrush* oldBrush = dc.SelectObject(&fb);
-    CPen* oldPen = dc.SelectObject(&border);
     if (rounded) {
+        CBrush fillBrush(c);
+        CPen borderPen(PS_SOLID, 1, CMPCTheme::PlayerButtonBorderColor);
+        CBrush* oldBrush = dc.SelectObject(&fillBrush);
+        CPen* oldPen = dc.SelectObject(&borderPen);
         dc.RoundRect(br, CPoint(br.Height(), br.Height()));
+        dc.SelectObject(oldPen);
+        dc.SelectObject(oldBrush);
     } else {
         dc.FillSolidRect(br, c);
-        dc.FrameRect(br, &fb);
+        CBrush borderBrush;
+        borderBrush.CreateSolidBrush(CMPCTheme::PlayerButtonBorderColor);
+        dc.FrameRect(br, &borderBrush);
     }
-    dc.SelectObject(oldPen);
-    dc.SelectObject(oldBrush);
     dc.Detach();
 }
 
