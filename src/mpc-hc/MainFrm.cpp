@@ -1838,7 +1838,7 @@ void CMainFrame::UpdateWindowCornerRounding()
         return;
     }
 
-    const int cornerDiameter = std::max(1, m_dpi.ScaleX(16));
+    const int cornerDiameter = std::max<LONG>(1, m_dpi.ScaleX(16));
     HRGN region = ::CreateRoundRectRgn(0, 0, width + 1, height + 1, cornerDiameter, cornerDiameter);
     if (region && !::SetWindowRgn(m_hWnd, region, TRUE)) {
         ::DeleteObject(region);
