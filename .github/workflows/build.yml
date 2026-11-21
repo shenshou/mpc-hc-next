@@ -231,6 +231,48 @@ jobs:
           Set-Content -LiteralPath $scriptPath -Value $content -Encoding Ascii -NoNewline
           Write-Host "Patched $scriptPath to restore Windows system commands and validate xcopy/NASM after Visual Studio setup."
 
+      - name: Prepare MPCVR 0.11.2.2638
+        shell: pwsh
+        run: |
+          # Pin the renderer build that matches MPC-HC 2.8.5. The source commit
+          # is ca9ca65 in Aleksoid1978/VideoRenderer; verify the published ZIP
+          # before using either architecture's DirectShow filter.
+          $version = '0.11.2.2638'
+          $url = 'https://github.com/qwerttvv/Player/releases/download/2026.11.05-1209/MpcVideoRenderer-0.11.2.2638_git2026.11.03-ca9ca65.zip'
+          $expectedSha256 = 'acafd66d44c243742ca7fa037f27196a32c8193e70f55a9a98d8c300787a529c'
+          $archive = Join-Path $env:RUNNER_TEMP 'mpcvr-0.11.2.2638.zip'
+          $extractDirectory = Join-Path $env:RUNNER_TEMP 'mpcvr-0.11.2.2638'
+
+          Invoke-WebRequest -Uri $url -OutFile $archive
+          $actualSha256 = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualSha256 -ne $expectedSha256) {
+            throw "MPCVR archive SHA256 mismatch. Expected $expectedSha256, got $actualSha256"
+          }
+
+          if (Test-Path -LiteralPath $extractDirectory) {
+            Remove-Item -LiteralPath $extractDirectory -Recurse -Force
+          }
+          Expand-Archive -LiteralPath $archive -DestinationPath $extractDirectory -Force
+
+          $rendererFiles = @{}
+          foreach ($name in @('MpcVideoRenderer.ax', 'MpcVideoRenderer64.ax')) {
+            $matches = @(Get-ChildItem -LiteralPath $extractDirectory -Recurse -File -Filter $name)
+            if ($matches.Count -ne 1 -or $matches[0].Length -le 0) {
+              throw "Expected exactly one non-empty MPCVR file '$name' in the verified archive; found $($matches.Count)."
+            }
+            $rendererFiles[$name] = $matches[0].FullName
+          }
+
+          $destination = Join-Path $env:GITHUB_WORKSPACE 'distrib\mpcvr'
+          New-Item -ItemType Directory -Path $destination -Force | Out-Null
+          foreach ($name in @('MpcVideoRenderer.ax', 'MpcVideoRenderer64.ax')) {
+            Copy-Item -LiteralPath $rendererFiles[$name] -Destination (Join-Path $destination $name) -Force
+            $file = Get-Item -LiteralPath (Join-Path $destination $name)
+            Write-Host "$name prepared ($($file.Length) bytes)"
+          }
+
+          Write-Host "Prepared MPC Video Renderer $version from verified archive ($actualSha256)."
+
       - name: Build MPC-HC
         shell: cmd
         run: |
@@ -264,6 +306,18 @@ jobs:
             if (-not (Test-Path -LiteralPath (Join-Path $stageRoot $baseName) -PathType Container)) {
               throw "Expected portable package directory was not extracted: $baseName"
             }
+
+            # Upstream build.bat does not copy MPCVR into portable archives.
+            # Add the architecture-matched filter beside the player executable.
+            $rendererName = if ($arch -eq 'x64') { 'MpcVideoRenderer64.ax' } else { 'MpcVideoRenderer.ax' }
+            $rendererSource = Join-Path $env:GITHUB_WORKSPACE "distrib\mpcvr\$rendererName"
+            if (-not (Test-Path -LiteralPath $rendererSource -PathType Leaf)) {
+              throw "Verified MPCVR source file is missing: $rendererSource"
+            }
+            $portableRendererDirectory = Join-Path $stageRoot "$baseName\MPCVR"
+            New-Item -ItemType Directory -Path $portableRendererDirectory -Force | Out-Null
+            Copy-Item -LiteralPath $rendererSource -Destination (Join-Path $portableRendererDirectory $rendererName) -Force
+            Write-Host "Added $rendererName to $baseName\MPCVR"
 
             Push-Location $stageRoot
             try {
@@ -315,6 +369,48 @@ jobs:
             $expectedExe = if ($archive.Name -match '\.x64\.zip$') { 'mpc-hc64.exe' } else { 'mpc-hc.exe' }
             if (-not ($listing -match [regex]::Escape($expectedExe))) {
               throw "Portable ZIP $($archive.Name) does not contain expected executable $expectedExe"
+            }
+
+            $expectedRenderer = if ($archive.Name -match '\\.x64\\.zip          }
+
+      - name: Upload x86/x64 portable and installer packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpc-hc-windows-packages
+          path: |
+            bin/MPC-HC.*.x86.zip
+            bin/MPC-HC.*.x64.zip
+            bin/MPC-HC.*.x86.exe
+            bin/MPC-HC.*.x64.exe
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload raw build output and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpc-hc-windows-build-raw
+          path: |
+            bin/mpc-hc_x86/**
+            bin/mpc-hc_x64/**
+            bin/logs/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Write build summary
+        if: always()
+        shell: pwsh
+        run: |
+          '## MPC-HC Windows build' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Source commit: ${{ github.sha }}' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Runner: windows-2022' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Target: x86 + x64 / Release' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Packages: separate x86/x64 portable ZIP archives and installers' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- No GitHub Release is created by this workflow.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+) { 'MpcVideoRenderer64.ax' } else { 'MpcVideoRenderer.ax' }
+            $rendererPattern = 'MPCVR[/\\\\]' + [regex]::Escape($expectedRenderer)
+            if (-not [regex]::IsMatch(($listing -join "`n"), $rendererPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+              throw "Portable ZIP $($archive.Name) does not contain MPCVR\\$expectedRenderer"
             }
           }
 
