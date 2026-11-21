@@ -56,6 +56,7 @@ CPPageTheme::CPPageTheme()
     , m_bHideWindowedControls(FALSE)
     , m_bAutoHideWindowedControls(FALSE)
     , m_bRoundVideoWindowCorners(FALSE)
+    , m_bModernZControls(FALSE)
     , m_bUseEnhancedTaskBar(TRUE)
     , m_bUseSMTC(FALSE)
     , m_bCustomPresetMenu(FALSE)
@@ -117,6 +118,7 @@ void CPPageTheme::DoDataExchange(CDataExchange* pDX)
     DDX_Check(pDX, IDC_CHECK10, m_bHideWindowedControls);
     DDX_Check(pDX, IDC_AUTOHIDE_WINDOWED_CONTROLS, m_bAutoHideWindowedControls);
     DDX_Check(pDX, IDC_ROUNDED_WINDOW_CORNERS, m_bRoundVideoWindowCorners);
+    DDX_Check(pDX, IDC_MODERNZ_CONTROLS, m_bModernZControls);
     DDX_Check(pDX, IDC_CHECK_ENHANCED_TASKBAR, m_bUseEnhancedTaskBar);
     DDX_Check(pDX, IDC_CHECK11, m_bUseSMTC);
 
@@ -251,6 +253,7 @@ BOOL CPPageTheme::OnInitDialog()
     m_bHideWindowedControls = s.bHideWindowedControls;
     m_bAutoHideWindowedControls = s.bAutoHideWindowedControls;
     m_bRoundVideoWindowCorners = s.bRoundVideoWindowCorners;
+    m_bModernZControls = s.bModernZControls;
     m_bUseEnhancedTaskBar = s.bUseEnhancedTaskBar;
     m_bUseSMTC = s.bUseSMTC;
 
@@ -351,9 +354,13 @@ BOOL CPPageTheme::OnApply()
     s.bHideWindowedControls = m_bHideWindowedControls;
     s.bAutoHideWindowedControls = !!m_bAutoHideWindowedControls;
     s.bRoundVideoWindowCorners = !!m_bRoundVideoWindowCorners;
+    s.bModernZControls = !!m_bModernZControls;
     if (CMainFrame* pMainFrame = AfxGetMainFrame()) {
         pMainFrame->UpdateControlState(CMainFrame::UPDATE_CONTROLS_VISIBILITY);
         pMainFrame->UpdateWindowCornerRounding();
+        pMainFrame->RecalcLayout();
+        pMainFrame->m_wndSeekBar.Invalidate();
+        pMainFrame->m_wndToolBar.Invalidate();
     }
 
     if (s.bUseEnhancedTaskBar != (bool)m_bUseEnhancedTaskBar) {
