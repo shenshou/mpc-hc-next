@@ -485,6 +485,11 @@ jobs:
                 throw "Prepared $arch portable artifact is missing: $relativePath"
               }
             }
+            $nestedArchives = @(Get-ChildItem -LiteralPath $portableRoots[0].FullName -Recurse -File |
+              Where-Object { $_.Extension -in @('.zip', '.7z') })
+            if ($nestedArchives.Count -gt 0) {
+              throw "Prepared $arch portable artifact still contains nested archives: $($nestedArchives.Name -join ', ')"
+            }
             Write-Host "Prepared directly extractable $arch portable artifact: $($portableRoots[0].FullName)"
           }
 
