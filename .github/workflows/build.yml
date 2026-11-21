@@ -2,6 +2,12 @@ name: MPC-HC Windows Build
 
 on:
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Package version for manual builds (without MPC-HC-Next. prefix)'
+        required: false
+        default: '0.2'
+        type: string
   push:
     tags:
       - 'MPC-HC-Next.*'
@@ -337,13 +343,19 @@ jobs:
 
       - name: Set release version and rename packages
         shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
-          # Tag pushes define the release version. Manual CI runs use the current
-          # project baseline name without creating a GitHub Release.
+          # Tag pushes define the release version. Manual builds use the
+          # workflow_dispatch input and never create a GitHub Release.
+          $releaseVersion = $env:RELEASE_VERSION
+          if ([string]::IsNullOrWhiteSpace($releaseVersion)) {
+            $releaseVersion = '0.2'
+          }
           $releasePrefix = if ($env:GITHUB_REF_TYPE -eq 'tag') {
             $env:GITHUB_REF_NAME
           } else {
-            'MPC-HC-Next.0.1'
+            "MPC-HC-Next.$releaseVersion"
           }
 
           if ($releasePrefix -notmatch '^MPC-HC-Next\.\d+(?:\.\d+)*$') {
