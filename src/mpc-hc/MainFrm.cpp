@@ -6539,6 +6539,7 @@ void CMainFrame::SetCaptionState(MpcCaptionState eState)
 
     VERIFY(SetWindowPos(nullptr, windowRect.left, windowRect.top, windowRect.Width(), windowRect.Height(), uFlags));
     OSDBarSetPos();
+    UpdateWindowCornerRounding();
 }
 
 void CMainFrame::OnViewCaptionmenu()
