@@ -604,7 +604,7 @@ void CVolumeCtrl::OnPaint()
         }
 
         if (showPercentage) {
-            dcMem.SetTextColor(CMPCTheme::TextFGColor);
+            dcMem.SetTextColor(bMpcThemeLoaded ? CMPCTheme::TextFGColor : RGB(245, 245, 245));
             CFont f;
             LOGFONT lf = { 0 };
             lf.lfHeight = r.Height();
