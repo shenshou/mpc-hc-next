@@ -799,7 +799,7 @@ END_MESSAGE_MAP()
 
 // CPlayerToolBar message handlers
 
-void drawButtonBG(NMCUSTOMDRAW nmcd, COLORREF c)
+void drawButtonBG(NMCUSTOMDRAW nmcd, COLORREF c, bool rounded)
 {
     CDC dc;
     dc.Attach(nmcd.hdc);
@@ -807,14 +807,21 @@ void drawButtonBG(NMCUSTOMDRAW nmcd, COLORREF c)
     br.CopyRect(&nmcd.rc);
     //adipose: remove the below code.  it is no longer necessary due to TBCDRF_NOOFFSET
     //and redesigning toolbar icons to be centered vs the old MFC style of "upper left" alignment
-    //br.DeflateRect(0, 0, 1, 1); //we aren't offsetting button when pressed, so try to center better
-
-    dc.FillSolidRect(br, c);
+    //br.DeflateRect(0, 0, 1, 1); //we aren't offsetting the button when pressed, so try to center better
 
     CBrush fb;
-    fb.CreateSolidBrush(CMPCTheme::PlayerButtonBorderColor);
-    dc.FrameRect(br, &fb);
-    fb.DeleteObject();
+    fb.CreateSolidBrush(c);
+    CPen border(PS_SOLID, 1, CMPCTheme::PlayerButtonBorderColor);
+    CBrush* oldBrush = dc.SelectObject(&fb);
+    CPen* oldPen = dc.SelectObject(&border);
+    if (rounded) {
+        dc.RoundRect(br, CPoint(br.Height(), br.Height()));
+    } else {
+        dc.FillSolidRect(br, c);
+        dc.FrameRect(br, &fb);
+    }
+    dc.SelectObject(oldPen);
+    dc.SelectObject(oldBrush);
     dc.Detach();
 }
 
@@ -822,6 +829,7 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
 {
     LPNMTBCUSTOMDRAW pTBCD = reinterpret_cast<LPNMTBCUSTOMDRAW>(pNMHDR);
     LRESULT lr = CDRF_DODEFAULT;
+    const bool bUseModernStyle = AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls;
 
     switch (pTBCD->nmcd.dwDrawStage) {
         case CDDS_PREERASE:
@@ -834,7 +842,7 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
             dc.Attach(pTBCD->nmcd.hdc);
             RECT r;
             GetClientRect(&r);
-            if (AppIsThemeLoaded()) {
+            if (bUseModernStyle) {
                 dc.FillSolidRect(&r, CMPCTheme::PlayerBGColor);
             } else {
                 dc.FillSolidRect(&r, ::GetSysColor(COLOR_BTNFACE));
@@ -846,15 +854,15 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
         case CDDS_ITEMPREPAINT:
             lr |= CDRF_NOTIFYPOSTPAINT | TBCDRF_NOOFFSET;
             {
-                if (AppIsThemeLoaded()) {
+                if (bUseModernStyle) {
                     lr |= TBCDRF_NOBACKGROUND;
                     
                     if (pTBCD->nmcd.uItemState & CDIS_CHECKED) {
-                        drawButtonBG(pTBCD->nmcd, CMPCTheme::PlayerButtonCheckedColor);
+                        drawButtonBG(pTBCD->nmcd, CMPCTheme::PlayerButtonCheckedColor, AfxGetAppSettings().bModernZControls);
                     } else if (pTBCD->nmcd.uItemState & CDIS_SELECTED) { //pressed
-                        drawButtonBG(pTBCD->nmcd, CMPCTheme::PlayerButtonClickedColor);
+                        drawButtonBG(pTBCD->nmcd, CMPCTheme::PlayerButtonClickedColor, AfxGetAppSettings().bModernZControls);
                     } else if (pTBCD->nmcd.uItemState & CDIS_HOT) {
-                        drawButtonBG(pTBCD->nmcd, CMPCTheme::PlayerButtonHotColor);
+                        drawButtonBG(pTBCD->nmcd, CMPCTheme::PlayerButtonHotColor, AfxGetAppSettings().bModernZControls);
                     }
                 }
             }
@@ -865,14 +873,14 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
             dc.Attach(pTBCD->nmcd.hdc);
             RECT r;
             GetItemRect(dummySeparatorIndex, &r);
-            if (AppIsThemeLoaded()) {
+            if (bUseModernStyle) {
                 dc.FillSolidRect(&r, CMPCTheme::PlayerBGColor);
             } else {
                 dc.FillSolidRect(&r, GetSysColor(COLOR_BTNFACE));
             }
             // Also hide the left separator
             GetItemRect(leftSeparatorIndex, &r);
-            if (AppIsThemeLoaded()) {
+            if (bUseModernStyle) {
                 dc.FillSolidRect(&r, CMPCTheme::PlayerBGColor);
             } else {
                 dc.FillSolidRect(&r, GetSysColor(COLOR_BTNFACE));
