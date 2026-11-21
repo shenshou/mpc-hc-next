@@ -173,11 +173,11 @@ CStringW CMpeg2DataParser::ConvertString(BYTE* pBuffer, size_t uLength)
                     tmp = pBuffer[i];
                     pBuffer[i] = pBuffer[i + 1];
                     pBuffer[++i] = tmp;
-                } else if (pBuffer[i] == 0xA4) { // € was added as 0xA4 in the DVB spec
+                } else if (pBuffer[i] == 0xA4) { // â‚¬ was added as 0xA4 in the DVB spec
                     euroSymbolPos.Add(i);
                 }
             }
-            // Handle last symbol if it's a €
+            // Handle last symbol if it's a â‚¬
             if (pBuffer[uLength - 1] == 0xA4) {
                 euroSymbolPos.Add(uLength - 1);
             }
@@ -214,7 +214,7 @@ CStringW CMpeg2DataParser::ConvertString(BYTE* pBuffer, size_t uLength)
                 }
 
                 for (INT_PTR i = 0, len = euroSymbolPos.GetCount(); i < len; i++) {
-                    strResultBuff[euroSymbolPos[i]] = _T('€');
+                    strResultBuff[euroSymbolPos[i]] = _T('â‚¬');
                 }
             }
 
@@ -590,7 +590,11 @@ HRESULT CMpeg2DataParser::ParsePMT(CBDAChannel& Channel)
                     SkipDescriptor(gb, nType, nLength);
                     break;
                 case DT_AAC_AUDIO:
-                    pes_stream_type = AUDIO_STREAM_AAC_LATM;
+                    // The AAC descriptor signals the profile, not the transport: stream_type 0x0F is ADTS
+                    // and 0x11 is LATM, so only fall back to LATM for other types such as private PES (0x06)
+                    if (pes_stream_type != AUDIO_STREAM_AAC && pes_stream_type != AUDIO_STREAM_AAC_LATM) {
+                        pes_stream_type = AUDIO_STREAM_AAC_LATM;
+                    }
                     SkipDescriptor(gb, nType, nLength);
                     break;
                 case DT_SUBTITLING:
