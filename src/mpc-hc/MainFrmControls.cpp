@@ -361,8 +361,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                                    !m_pMainFrame->IsFullScreenMainFrame() && !m_pMainFrame->IsFullScreenSeparate();
     const auto eEffectivePolicy = bWindowedAutoHide
                                   ? CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_HOVERED : ePolicy;
-    const unsigned uTimeout = bWindowedAutoHide
-                              ? std::max(s.uHideFullscreenControlsDelay, 600u) : s.uHideFullscreenControlsDelay;
+    const unsigned uTimeout = bWindowedAutoHide ? 600u : s.uHideFullscreenControlsDelay;
 
     CPoint screenPoint;
     //VERIFY(GetCursorPos(&screenPoint));
