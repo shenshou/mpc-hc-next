@@ -381,7 +381,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                                : (bWindowedAutoHide || (s.bHideFullscreenControls && s.bHideWindowedControls &&
                                   !m_pMainFrame->IsFullScreenSeparate()))) &&
                               (bWindowedAutoHide || ePolicy != CAppSettings::HideFullscreenControlsPolicy::SHOW_NEVER);
-    // The independent windowed option only hides the seekbar and player toolbar, never docked panels.
+    // When used on its own, the new windowed option hides only the seekbar and player toolbar.
     const bool bCanHideDockedPanels = !bWindowedAutoHideOnly && s.bHideFullscreenDockedPanels;
 
     bool bEnumedPanelZones = false;
