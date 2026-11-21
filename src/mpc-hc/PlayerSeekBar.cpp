@@ -818,9 +818,15 @@ void CPlayerSeekBar::OnPaint()
 
     const CAppSettings& s = AfxGetAppSettings();
     if (s.bModernZControls) {
+        const bool bMpcThemeLoaded = AppIsThemeLoaded();
+        const COLORREF backgroundColor = bMpcThemeLoaded ? CMPCTheme::ContentBGColor : RGB(32, 32, 32);
+        const COLORREF trackColor = bMpcThemeLoaded ? CMPCTheme::ScrollBGColor : RGB(76, 76, 82);
+        const COLORREF progressColor = bMpcThemeLoaded ? CMPCTheme::ScrollProgressColor : RGB(230, 230, 235);
+        const COLORREF chapterColor = bMpcThemeLoaded ? CMPCTheme::SeekbarChapterColor : RGB(180, 180, 190);
+        const COLORREF abColor = bMpcThemeLoaded ? CMPCTheme::SeekbarABColor : RGB(245, 165, 70);
         CRect clientRect;
         GetClientRect(&clientRect);
-        dc.FillSolidRect(&clientRect, CMPCTheme::ContentBGColor);
+        dc.FillSolidRect(&clientRect, backgroundColor);
 
         const int trackHeight = std::max<LONG>(2, m_pMainFrame->m_dpi.ScaleY(4));
         CRect trackRect(channelRect);
@@ -839,13 +845,13 @@ void CPlayerSeekBar::OnPaint()
             }
         };
 
-        fillRoundedRect(trackRect, CMPCTheme::ScrollBGColor);
+        fillRoundedRect(trackRect, trackColor);
 
         const int seekPos = ChannelPointFromPosition(m_rtPosDraw);
         if (m_bHasDuration && seekPos > 0) {
             CRect progressRect(trackRect);
             progressRect.right = std::min(trackRect.right, trackRect.left + seekPos);
-            fillRoundedRect(progressRect, CMPCTheme::ScrollProgressColor);
+            fillRoundedRect(progressRect, progressColor);
         }
 
         auto drawMarker = [&](REFERENCE_TIME pos, COLORREF color) {
@@ -861,10 +867,10 @@ void CPlayerSeekBar::OnPaint()
             REFERENCE_TIME aPos, bPos;
             if (m_pMainFrame->CheckABRepeat(aPos, bPos)) {
                 if (aPos) {
-                    drawMarker(aPos, CMPCTheme::SeekbarABColor);
+                    drawMarker(aPos, abColor);
                 }
                 if (bPos) {
-                    drawMarker(bPos, CMPCTheme::SeekbarABColor);
+                    drawMarker(bPos, abColor);
                 }
             }
 
@@ -873,7 +879,7 @@ void CPlayerSeekBar::OnPaint()
                 for (DWORD i = 0; i < m_pChapterBag->ChapGetCount(); i++) {
                     REFERENCE_TIME rtChapter;
                     if (SUCCEEDED(m_pChapterBag->ChapGet(i, &rtChapter, nullptr))) {
-                        drawMarker(rtChapter, CMPCTheme::SeekbarChapterColor);
+                        drawMarker(rtChapter, chapterColor);
                     } else {
                         ASSERT(FALSE);
                     }
@@ -888,8 +894,8 @@ void CPlayerSeekBar::OnPaint()
             CRect thumb(0, 0, thumbSize, thumbSize);
             thumb.MoveToXY(channelRect.left + seekPos - thumbSize / 2,
                            channelRect.CenterPoint().y - thumbSize / 2);
-            CBrush brush(CMPCTheme::ScrollProgressColor);
-            CPen pen(PS_SOLID, 1, CMPCTheme::ScrollProgressColor);
+            CBrush brush(progressColor);
+            CPen pen(PS_SOLID, 1, progressColor);
             CBrush* oldBrush = dc.SelectObject(&brush);
             CPen* oldPen = dc.SelectObject(&pen);
             dc.Ellipse(&thumb);
