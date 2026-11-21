@@ -479,7 +479,7 @@ jobs:
             }
             $expectedExe = if ($arch -eq 'x64') { 'mpc-hc64.exe' } else { 'mpc-hc.exe' }
             $expectedRenderer = if ($arch -eq 'x64') { 'MpcVideoRenderer64.ax' } else { 'MpcVideoRenderer.ax' }
-            foreach ($relativePath in @($expectedExe, "MPCVR\\$expectedRenderer")) {
+            foreach ($relativePath in @($expectedExe, "MPCVR\$expectedRenderer")) {
               $file = Join-Path $portableRoots[0].FullName $relativePath
               if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
                 throw "Prepared $arch portable artifact is missing: $relativePath"
