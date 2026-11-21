@@ -55,6 +55,49 @@ jobs:
             throw "NASM version check failed with exit code $LASTEXITCODE"
           }
 
+      - name: Install packaging tools (7-Zip and Inno Setup)
+        shell: pwsh
+        run: |
+          # The upstream build script discovers 7-Zip through PATH/registry and
+          # Inno Setup 6 through its uninstall registry key.
+          choco install 7zip innosetup --yes --no-progress
+          if ($LASTEXITCODE -ne 0) {
+            throw "Chocolatey packaging-tool installation failed with exit code $LASTEXITCODE"
+          }
+
+          $sevenZip = Get-Command 7z.exe -ErrorAction SilentlyContinue
+          if (-not $sevenZip) {
+            $candidate = Join-Path $env:ProgramFiles '7-Zip\\7z.exe'
+            if (Test-Path -LiteralPath $candidate) {
+              $candidateDirectory = Split-Path -Parent $candidate
+              $candidateDirectory | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+              $sevenZip = Get-Item -LiteralPath $candidate
+            }
+          }
+          if (-not $sevenZip) {
+            throw '7z.exe was not found after installing 7-Zip.'
+          }
+          & $sevenZip.Source i | Select-Object -First 2
+
+          $innoKey = 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Inno Setup 6_is1'
+          if (-not (Test-Path -LiteralPath $innoKey)) {
+            $innoKey = 'HKLM:\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Inno Setup 6_is1'
+          }
+          if (-not (Test-Path -LiteralPath $innoKey)) {
+            throw 'Inno Setup 6 registry entry was not found after installation.'
+          }
+          $innoDirectory = (Get-ItemProperty -LiteralPath $innoKey).'Inno Setup: App Path'
+          $iscc = Join-Path $innoDirectory 'ISCC.exe'
+          if (-not (Test-Path -LiteralPath $iscc -PathType Leaf)) {
+            throw "Inno Setup compiler was not found: $iscc"
+          }
+          & $iscc /?
+          if ($LASTEXITCODE -gt 1) {
+            throw "Inno Setup compiler validation failed with exit code $LASTEXITCODE"
+          }
+          Write-Host "7-Zip: $($sevenZip.Source)"
+          Write-Host "Inno Setup: $iscc"
+
       - name: Set up Python and translation dependency
         uses: actions/setup-python@v5
         with:
@@ -179,9 +222,82 @@ jobs:
         run: |
           where.exe nasm.exe
           nasm.exe -v
-          build.bat Build Both MPCHC Release Silent Nocolors
+          build.bat Build Both MPCHC Release Packages Silent Nocolors
+          if errorlevel 1 exit /b %errorlevel%
 
-      - name: Upload build output and logs
+      - name: Verify x86/x64 portable archives and installers
+        shell: pwsh
+        run: |
+          $expected = @(
+            @{ Pattern = 'MPC-HC.*.x86.7z'; Kind = 'x86 portable archive' },
+            @{ Pattern = 'MPC-HC.*.x64.7z'; Kind = 'x64 portable archive' },
+            @{ Pattern = 'MPC-HC.*.x86.exe'; Kind = 'x86 installer' },
+            @{ Pattern = 'MPC-HC.*.x64.exe'; Kind = 'x64 installer' }
+          )
+
+          foreach ($item in $expected) {
+            $files = @(Get-ChildItem -LiteralPath bin -File -Filter $item.Pattern)
+            if ($files.Count -ne 1) {
+              throw "Expected exactly one $($item.Kind) matching '$($item.Pattern)', found $($files.Count)."
+            }
+            if ($files[0].Length -le 0) {
+              throw "$($item.Kind) is empty: $($files[0].FullName)"
+            }
+            Write-Host "$($item.Kind): $($files[0].Name) ($($files[0].Length) bytes)"
+          }
+
+          $archives = @(
+            Get-ChildItem -LiteralPath bin -File -Filter 'MPC-HC.*.x86.7z'
+            Get-ChildItem -LiteralPath bin -File -Filter 'MPC-HC.*.x64.7z'
+          )
+          foreach ($archive in $archives) {
+            & 7z.exe t $archive.FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "7-Zip integrity test failed: $($archive.Name)"
+            }
+            $listing = & 7z.exe l -ba $archive.FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "Could not list portable archive: $($archive.Name)"
+            }
+            $expectedExe = if ($archive.Name -match '\\.x64\\.7z        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpc-hc-windows-build-raw
+          path: |
+            bin/mpc-hc_x86/**
+            bin/mpc-hc_x64/**
+            bin/logs/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Write build summary
+        if: always()
+        shell: pwsh
+        run: |
+          '## MPC-HC Windows build' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Source commit: ${{ github.sha }}' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Runner: windows-2022' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Target: x86 + x64 / Release' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- No GitHub Release is created by this workflow.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+) { 'mpc-hc64.exe' } else { 'mpc-hc.exe' }
+            if (-not ($listing -match [regex]::Escape($expectedExe))) {
+              throw "Portable archive $($archive.Name) does not contain expected executable $expectedExe"
+            }
+          }
+
+      - name: Upload x86/x64 portable and installer packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpc-hc-windows-packages
+          path: |
+            bin/MPC-HC.*.x86.7z
+            bin/MPC-HC.*.x64.7z
+            bin/MPC-HC.*.x86.exe
+            bin/MPC-HC.*.x64.exe
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload raw build output and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
