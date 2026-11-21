@@ -422,6 +422,45 @@ jobs:
             }
           }
 
+      - name: Smoke-test x86/x64 installers
+        shell: pwsh
+        run: |
+          $installRoot = Join-Path $env:RUNNER_TEMP 'mpc-hc-installer-smoke'
+          if (Test-Path -LiteralPath $installRoot) {
+            Remove-Item -LiteralPath $installRoot -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $installRoot | Out-Null
+
+          foreach ($arch in @('x86', 'x64')) {
+            $installer = Join-Path (Resolve-Path bin).Path "$env:RELEASE_PREFIX.$arch.exe"
+            $installDirectory = Join-Path $installRoot $arch
+            $expectedExe = if ($arch -eq 'x64') { 'mpc-hc64.exe' } else { 'mpc-hc.exe' }
+            $expectedRenderer = if ($arch -eq 'x64') { 'MpcVideoRenderer64.ax' } else { 'MpcVideoRenderer.ax' }
+
+            $arguments = @(
+              '/VERYSILENT'
+              '/SUPPRESSMSGBOXES'
+              '/NORESTART'
+              '/SP-'
+              "/DIR=$installDirectory"
+            )
+            $process = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru
+            if ($process.ExitCode -ne 0) {
+              throw "$arch installer smoke test failed with exit code $($process.ExitCode)."
+            }
+
+            $playerPath = Join-Path $installDirectory $expectedExe
+            $rendererPath = Join-Path $installDirectory "MPCVR\$expectedRenderer"
+            if (-not (Test-Path -LiteralPath $playerPath -PathType Leaf)) {
+              throw "$arch installer did not install the expected player executable: $playerPath"
+            }
+            if (-not (Test-Path -LiteralPath $rendererPath -PathType Leaf)) {
+              throw "$arch installer did not install the expected MPCVR binary: $rendererPath"
+            }
+
+            Write-Host "$arch installer smoke test passed: $expectedExe and MPCVR\$expectedRenderer"
+          }
+
       - name: Create GitHub Release with four independent assets
         id: publish_release
         if: github.ref_type == 'tag'
