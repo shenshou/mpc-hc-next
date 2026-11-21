@@ -135,6 +135,9 @@ BEGIN_MESSAGE_MAP(CPPageTheme, CMPCThemePPageBase)
     ON_BN_CLICKED(IDC_SEEK_PREVIEW, OnPreviewClicked)
     ON_BN_CLICKED(IDC_CHECK14, OnTimeClicked)
     ON_BN_CLICKED(IDC_CHECK1, OnThemeClicked)
+    ON_BN_CLICKED(IDC_AUTOHIDE_WINDOWED_CONTROLS, OnWindowPlayerUIOptionClicked)
+    ON_BN_CLICKED(IDC_ROUNDED_WINDOW_CORNERS, OnWindowPlayerUIOptionClicked)
+    ON_BN_CLICKED(IDC_MODERNZ_CONTROLS, OnWindowPlayerUIOptionClicked)
     ON_NOTIFY_EX(TTN_NEEDTEXT, 0, OnToolTipNotify)
     ON_CBN_SELCHANGE(IDC_COMBO5, OnChngOSDCombo)
     ON_CBN_SELCHANGE(IDC_COMBO6, OnChngOSDCombo)
@@ -409,6 +412,11 @@ void CPPageTheme::OnPreviewClicked() {
 
 void CPPageTheme::OnTimeClicked() {
     m_HoverPosition.EnableWindow(IsDlgButtonChecked(IDC_CHECK14));
+    SetModified();
+}
+
+void CPPageTheme::OnWindowPlayerUIOptionClicked()
+{
     SetModified();
 }
 
