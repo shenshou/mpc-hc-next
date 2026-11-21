@@ -1817,6 +1817,34 @@ void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
     OSDBarSetPos();
 }
 
+void CMainFrame::UpdateWindowCornerRounding()
+{
+    const auto& s = AfxGetAppSettings();
+    if (!m_hWnd || !::IsWindow(m_hWnd)) {
+        return;
+    }
+
+    if (!s.bRoundVideoWindowCorners || IsFullScreenMainFrame() || IsFullScreenSeparate() ||
+            IsD3DFullScreenMode() || IsZoomed() || IsIconic()) {
+        ::SetWindowRgn(m_hWnd, nullptr, TRUE);
+        return;
+    }
+
+    CRect windowRect;
+    GetWindowRect(&windowRect);
+    const int width = windowRect.Width();
+    const int height = windowRect.Height();
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+
+    const int cornerDiameter = std::max(1, m_dpi.ScaleX(16));
+    HRGN region = ::CreateRoundRectRgn(0, 0, width + 1, height + 1, cornerDiameter, cornerDiameter);
+    if (region && !::SetWindowRgn(m_hWnd, region, TRUE)) {
+        ::DeleteObject(region);
+    }
+}
+
 void CMainFrame::OnSize(UINT nType, int cx, int cy)
 {
     if (nType == SIZE_MINIMIZED) {
@@ -1852,6 +1880,7 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
     if (nType != SIZE_MINIMIZED) {
         OSDBarSetPos();
     }
+    UpdateWindowCornerRounding();
 }
 
 void CMainFrame::OnSizing(UINT nSide, LPRECT lpRect)
