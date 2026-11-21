@@ -1192,6 +1192,7 @@ public:
 
     void UpdateControlState(UpdateControlTarget target);
     void UpdateWindowCornerRounding();
+    void UpdatePlayerUIAppearance();
 
     UINT GetNormalPresetCS() const;
     void ApplyTimeOnSeekBarChange();
