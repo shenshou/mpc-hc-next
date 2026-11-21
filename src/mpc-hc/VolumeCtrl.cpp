@@ -525,9 +525,9 @@ void CVolumeCtrl::OnPaint()
 {
     const bool bModernZ = AfxGetAppSettings().bModernZControls;
     const bool bMpcThemeLoaded = AppIsThemeLoaded();
-    const COLORREF playerBGColor = bMpcThemeLoaded ? playerBGColor : RGB(32, 32, 32);
-    const COLORREF trackColor = bMpcThemeLoaded ? trackColor : RGB(76, 76, 82);
-    const COLORREF progressColor = bMpcThemeLoaded ? progressColor : RGB(230, 230, 235);
+    const COLORREF playerBGColor = bMpcThemeLoaded ? CMPCTheme::PlayerBGColor : RGB(32, 32, 32);
+    const COLORREF trackColor = bMpcThemeLoaded ? CMPCTheme::ScrollBGColor : RGB(76, 76, 82);
+    const COLORREF progressColor = bMpcThemeLoaded ? CMPCTheme::ScrollProgressColor : RGB(230, 230, 235);
     const COLORREF thumbColorDefault = bMpcThemeLoaded ? CMPCTheme::ScrollThumbColor : RGB(235, 235, 240);
     const COLORREF thumbColorHover = bMpcThemeLoaded ? CMPCTheme::ScrollThumbHoverColor : RGB(200, 200, 210);
     const COLORREF thumbColorDrag = bMpcThemeLoaded ? CMPCTheme::ScrollThumbDragColor : RGB(255, 255, 255);
