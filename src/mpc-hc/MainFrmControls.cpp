@@ -477,7 +477,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                         }
                         uBottom = 0;
                     }
-                    if (!bCanHideDockedPanels && !bWindowedAutoHide) {
+                    if (!bCanHideDockedPanels) {
                         uTop = uLeft = uRight = 0;
                     }
                     const bool bHoveringExclSeekbar = (bExclSeekbar && exclSeekbarRect.PtInRect(clientPoint));
@@ -593,7 +593,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
         }
     }
 
-    if (!bCanHideDockedPanels) {
+    if (!bCanHideDockedPanels && !bWindowedAutoHide) {
         for (const auto& pair : m_panels) {
             if (pair.second->IsAutohidden()) {
                 bRecalcLayout = true;
