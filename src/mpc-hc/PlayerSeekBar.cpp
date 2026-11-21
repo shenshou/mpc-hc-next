@@ -137,7 +137,7 @@ CSize CPlayerSeekBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 {
     CSize ret = __super::CalcFixedLayout(bStretch, bHorz);
     const CAppSettings& s = AfxGetAppSettings();
-    if (AppIsThemeLoaded()) {
+    if (AppIsThemeLoaded() || s.bModernZControls) {
         ret.cy = m_pMainFrame->m_dpi.ScaleY(5 + s.iModernSeekbarHeight); //expand the toolbar if using "fill" mode
     } else {
         ret.cy = m_pMainFrame->m_dpi.ScaleY(20);
@@ -817,7 +817,86 @@ void CPlayerSeekBar::OnPaint()
     };
 
     const CAppSettings& s = AfxGetAppSettings();
-    if (AppIsThemeLoaded()) {
+    if (s.bModernZControls) {
+        CRect clientRect;
+        GetClientRect(&clientRect);
+        dc.FillSolidRect(&clientRect, CMPCTheme::ContentBGColor);
+
+        const int trackHeight = std::max(2, m_pMainFrame->m_dpi.ScaleY(4));
+        CRect trackRect(channelRect);
+        trackRect.top = channelRect.CenterPoint().y - trackHeight / 2;
+        trackRect.bottom = trackRect.top + trackHeight;
+
+        auto fillRoundedRect = [&](const CRect& rect, COLORREF color) {
+            if (rect.IsRectEmpty()) {
+                return;
+            }
+            CRgn region;
+            if (region.CreateRoundRectRgn(rect.left, rect.top, rect.right, rect.bottom,
+                                          rect.Height(), rect.Height())) {
+                CBrush brush(color);
+                dc.FillRgn(&region, &brush);
+            }
+        };
+
+        fillRoundedRect(trackRect, CMPCTheme::ScrollBGColor);
+
+        const int seekPos = ChannelPointFromPosition(m_rtPosDraw);
+        if (m_bHasDuration && seekPos > 0) {
+            CRect progressRect(trackRect);
+            progressRect.right = std::min(trackRect.right, trackRect.left + seekPos);
+            fillRoundedRect(progressRect, CMPCTheme::ScrollProgressColor);
+        }
+
+        auto drawMarker = [&](REFERENCE_TIME pos, COLORREF color) {
+            const int x = channelRect.left + ChannelPointFromPosition(pos);
+            const int markerWidth = std::max(1, m_pMainFrame->m_dpi.ScaleX(1));
+            const int markerHeight = m_pMainFrame->m_dpi.ScaleY(8);
+            CRect marker(x, trackRect.CenterPoint().y - markerHeight / 2,
+                         x + markerWidth, trackRect.CenterPoint().y + (markerHeight + 1) / 2);
+            dc.FillSolidRect(&marker, color);
+        };
+
+        if (m_bHasDuration) {
+            REFERENCE_TIME aPos, bPos;
+            if (m_pMainFrame->CheckABRepeat(aPos, bPos)) {
+                if (aPos) {
+                    drawMarker(aPos, CMPCTheme::SeekbarABColor);
+                }
+                if (bPos) {
+                    drawMarker(bPos, CMPCTheme::SeekbarABColor);
+                }
+            }
+
+            CAutoLock lock(&m_csChapterBag);
+            if (m_pChapterBag) {
+                for (DWORD i = 0; i < m_pChapterBag->ChapGetCount(); i++) {
+                    REFERENCE_TIME rtChapter;
+                    if (SUCCEEDED(m_pChapterBag->ChapGet(i, &rtChapter, nullptr))) {
+                        drawMarker(rtChapter, CMPCTheme::SeekbarChapterColor);
+                    } else {
+                        ASSERT(FALSE);
+                    }
+                }
+            }
+        }
+
+        CRect thumbRect(GetThumbRect());
+        m_lastThumbRect = thumbRect;
+        if (m_bEnabled && m_bHasDuration) {
+            const int thumbSize = std::max(8, m_pMainFrame->m_dpi.ScaleY(12));
+            CRect thumb(0, 0, thumbSize, thumbSize);
+            thumb.MoveToXY(channelRect.left + seekPos - thumbSize / 2,
+                           channelRect.CenterPoint().y - thumbSize / 2);
+            CBrush brush(CMPCTheme::ScrollProgressColor);
+            CPen pen(PS_SOLID, 1, CMPCTheme::ScrollProgressColor);
+            CBrush* oldBrush = dc.SelectObject(&brush);
+            CPen* oldPen = dc.SelectObject(&pen);
+            dc.Ellipse(&thumb);
+            dc.SelectObject(oldPen);
+            dc.SelectObject(oldBrush);
+        }
+    } else if (AppIsThemeLoaded()) {
         // Thumb
         CRect r(GetThumbRect());
         m_lastThumbRect = r;
