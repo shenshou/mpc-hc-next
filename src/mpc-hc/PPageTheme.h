@@ -100,6 +100,7 @@ public:
     afx_msg void OnPreviewClicked();
     afx_msg void OnTimeClicked();
     afx_msg void OnThemeClicked();
+    afx_msg void OnWindowPlayerUIOptionClicked();
     afx_msg void OnChngOSDCombo();
     void AdjustDynamicWidgets();
 };
