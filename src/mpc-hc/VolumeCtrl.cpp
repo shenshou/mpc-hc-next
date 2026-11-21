@@ -515,8 +515,10 @@ void CVolumeCtrl::OnMouseLeave()
 }
 
 
-void CVolumeCtrl::OnPaint() {
-    if (m_fSelfDrawn && AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls) {
+void CVolumeCtrl::OnPaint()
+{
+    const bool bModernZ = AfxGetAppSettings().bModernZControls;
+    if (m_fSelfDrawn && (AppIsThemeLoaded() || bModernZ)) {
         DpiHelper dpiWindow;
         dpiWindow.Override(GetSafeHwnd());
 
@@ -531,24 +533,62 @@ void CVolumeCtrl::OnPaint() {
 
         dcMem.FillSolidRect(&memRect, CMPCTheme::PlayerBGColor);
         getCustomChannelRect(r);
-        //r.DeflateRect(0, dpiWindow.ScaleFloorY(3), 0, dpiWindow.ScaleFloorY(2));
         r.OffsetRect(-cr.TopLeft());
 
-        CRect filledRect, unfilledRect;
-        filledRect = r;
-        filledRect.right = r.left + lround(r.Width() * float(GetPos()) / 100);
-        dcMem.FillSolidRect(&filledRect, CMPCTheme::ScrollProgressColor);
+        if (bModernZ) {
+            const int trackHeight = std::max<LONG>(2, dpiWindow.ScaleY(4));
+            CRect trackRect(r);
+            trackRect.top = r.CenterPoint().y - trackHeight / 2;
+            trackRect.bottom = trackRect.top + trackHeight;
 
-        if (filledRect.right < r.right) { //do not fill bg if already full
-            unfilledRect = r;
-            unfilledRect.left = filledRect.right;
-            dcMem.FillSolidRect(&unfilledRect, CMPCTheme::ScrollBGColor);
+            auto fillRoundedRect = [&](const CRect& rect, COLORREF color) {
+                if (rect.IsRectEmpty()) {
+                    return;
+                }
+                CRgn region;
+                if (region.CreateRoundRectRgn(rect.left, rect.top, rect.right, rect.bottom,
+                                              rect.Height(), rect.Height())) {
+                    CBrush brush(color);
+                    dcMem.FillRgn(&region, &brush);
+                }
+            };
+
+            fillRoundedRect(trackRect, CMPCTheme::ScrollBGColor);
+            CRect filledRect(trackRect);
+            filledRect.right = trackRect.left + lround(trackRect.Width() * float(GetPos()) / 100);
+            fillRoundedRect(filledRect, CMPCTheme::ScrollProgressColor);
+
+            const int thumbSize = std::max<LONG>(8, dpiWindow.ScaleY(12));
+            CRect thumb(0, 0, thumbSize, thumbSize);
+            thumb.MoveToXY(trackRect.left + lround(trackRect.Width() * float(GetPos()) / 100) - thumbSize / 2,
+                           trackRect.CenterPoint().y - thumbSize / 2);
+            const COLORREF thumbColor = m_bDrag ? CMPCTheme::ScrollThumbDragColor
+                                       : m_bHover ? CMPCTheme::ScrollThumbHoverColor
+                                                  : CMPCTheme::ScrollThumbColor;
+            CBrush brush(thumbColor);
+            CPen pen(PS_NULL, 0, thumbColor);
+            CBrush* oldBrush = dcMem.SelectObject(&brush);
+            CPen* oldPen = dcMem.SelectObject(&pen);
+            dcMem.Ellipse(&thumb);
+            dcMem.SelectObject(oldPen);
+            dcMem.SelectObject(oldBrush);
+        } else {
+            CRect filledRect, unfilledRect;
+            filledRect = r;
+            filledRect.right = r.left + lround(r.Width() * float(GetPos()) / 100);
+            dcMem.FillSolidRect(&filledRect, CMPCTheme::ScrollProgressColor);
+
+            if (filledRect.right < r.right) {
+                unfilledRect = r;
+                unfilledRect.left = filledRect.right;
+                dcMem.FillSolidRect(&unfilledRect, CMPCTheme::ScrollBGColor);
+            }
+
+            CBrush fb;
+            fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
+            dcMem.FrameRect(r, &fb);
+            fb.DeleteObject();
         }
-
-        CBrush fb;
-        fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
-        dcMem.FrameRect(r, &fb);
-        fb.DeleteObject();
 
         if (showPercentage) {
             dcMem.SetTextColor(CMPCTheme::TextFGColor);
@@ -572,9 +612,8 @@ void CVolumeCtrl::OnPaint() {
         __super::OnPaint(); //can trigger OnNMCustomdraw
     }
 }
-
 BOOL CVolumeCtrl::OnEraseBkgnd(CDC* pDC) {
-    if (m_fSelfDrawn && AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls) {
+    if (m_fSelfDrawn && (AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls)) {
         return TRUE;
     } else {
         return CSliderCtrl::OnEraseBkgnd(pDC);
