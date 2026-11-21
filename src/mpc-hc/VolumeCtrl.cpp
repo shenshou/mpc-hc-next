@@ -216,14 +216,17 @@ void CVolumeCtrl::OnNMCustomdraw(NMHDR* pNMHDR, LRESULT* pResult)
                         dpiWindow.Override(GetSafeHwnd());
 
                         CRect r(pNMCD->rc);
-                        r.DeflateRect(0, dpiWindow.ScaleFloorY(6), 0, dpiWindow.ScaleFloorY(6));
                         if (bModernZ) {
+                            const int trackHeight = std::max<LONG>(2, dpiWindow.ScaleY(4));
+                            r.top = r.CenterPoint().y - trackHeight / 2;
+                            r.bottom = r.top + trackHeight;
                             CRgn region;
                             if (region.CreateRoundRectRgn(r.left, r.top, r.right, r.bottom, r.Height(), r.Height())) {
                                 CBrush brush(CMPCTheme::ScrollBGColor);
                                 dc.FillRgn(&region, &brush);
                             }
                         } else {
+                            r.DeflateRect(0, dpiWindow.ScaleFloorY(6), 0, dpiWindow.ScaleFloorY(6));
                             dc.FillSolidRect(r, CMPCTheme::ScrollBGColor);
                             CBrush fb;
                             fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
