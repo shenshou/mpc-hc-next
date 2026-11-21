@@ -292,32 +292,11 @@ jobs:
             }
             $listing = & 7z.exe l -ba $archive.FullName
             if ($LASTEXITCODE -ne 0) {
-              throw "Could not list portable archive: $($archive.Name)"
+              throw "Could not list portable ZIP: $($archive.Name)"
             }
-            $expectedExe = if ($archive.Name -match '\\.x64\\.7z        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: mpc-hc-windows-build-raw
-          path: |
-            bin/mpc-hc_x86/**
-            bin/mpc-hc_x64/**
-            bin/logs/**
-          if-no-files-found: warn
-          retention-days: 14
-
-      - name: Write build summary
-        if: always()
-        shell: pwsh
-        run: |
-          '## MPC-HC Windows build' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          '- Source commit: ${{ github.sha }}' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          '- Runner: windows-2022' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          '- Target: x86 + x64 / Release' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          '- Packages: separate x86/x64 portable ZIP archives and installers' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-          '- No GitHub Release is created by this workflow.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-) { 'mpc-hc64.exe' } else { 'mpc-hc.exe' }
+            $expectedExe = if ($archive.Name -match '\.x64\.zip$') { 'mpc-hc64.exe' } else { 'mpc-hc.exe' }
             if (-not ($listing -match [regex]::Escape($expectedExe))) {
-              throw "Portable archive $($archive.Name) does not contain expected executable $expectedExe"
+              throw "Portable ZIP $($archive.Name) does not contain expected executable $expectedExe"
             }
           }
 
@@ -337,7 +316,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mpc-hc-windows-build
+          name: mpc-hc-windows-build-raw
           path: |
             bin/mpc-hc_x86/**
             bin/mpc-hc_x64/**
@@ -353,4 +332,5 @@ jobs:
           '- Source commit: ${{ github.sha }}' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           '- Runner: windows-2022' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           '- Target: x86 + x64 / Release' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          '- Packages: separate x86/x64 portable ZIP archives and installers' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           '- No GitHub Release is created by this workflow.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
