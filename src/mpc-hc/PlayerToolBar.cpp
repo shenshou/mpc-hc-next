@@ -811,7 +811,8 @@ void drawButtonBG(NMCUSTOMDRAW nmcd, COLORREF c, bool rounded)
 
     if (rounded) {
         CBrush fillBrush(c);
-        CPen borderPen(PS_SOLID, 1, CMPCTheme::PlayerButtonBorderColor);
+        const COLORREF borderColor = AppIsThemeLoaded() ? CMPCTheme::PlayerButtonBorderColor : RGB(54, 54, 60);
+        CPen borderPen(PS_SOLID, 1, borderColor);
         CBrush* oldBrush = dc.SelectObject(&fillBrush);
         CPen* oldPen = dc.SelectObject(&borderPen);
         dc.RoundRect(br, CPoint(br.Height(), br.Height()));
@@ -830,7 +831,12 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
 {
     LPNMTBCUSTOMDRAW pTBCD = reinterpret_cast<LPNMTBCUSTOMDRAW>(pNMHDR);
     LRESULT lr = CDRF_DODEFAULT;
-    const bool bUseModernStyle = AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls;
+    const bool bMpcThemeLoaded = AppIsThemeLoaded();
+    const bool bUseModernStyle = bMpcThemeLoaded || AfxGetAppSettings().bModernZControls;
+    const COLORREF playerBGColor = bMpcThemeLoaded ? playerBGColor : RGB(32, 32, 32);
+    const COLORREF buttonCheckedColor = bMpcThemeLoaded ? buttonCheckedColor : RGB(66, 66, 72);
+    const COLORREF buttonClickedColor = bMpcThemeLoaded ? buttonClickedColor : RGB(55, 55, 61);
+    const COLORREF buttonHotColor = bMpcThemeLoaded ? buttonHotColor : RGB(45, 45, 51);
 
     switch (pTBCD->nmcd.dwDrawStage) {
         case CDDS_PREERASE:
@@ -844,7 +850,7 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
             RECT r;
             GetClientRect(&r);
             if (bUseModernStyle) {
-                dc.FillSolidRect(&r, CMPCTheme::PlayerBGColor);
+                dc.FillSolidRect(&r, playerBGColor);
             } else {
                 dc.FillSolidRect(&r, ::GetSysColor(COLOR_BTNFACE));
             }
@@ -859,11 +865,11 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
                     lr |= TBCDRF_NOBACKGROUND;
                     
                     if (pTBCD->nmcd.uItemState & CDIS_CHECKED) {
-                        drawButtonBG(pTBCD->nmcd, CMPCTheme::PlayerButtonCheckedColor, AfxGetAppSettings().bModernZControls);
+                        drawButtonBG(pTBCD->nmcd, buttonCheckedColor, AfxGetAppSettings().bModernZControls);
                     } else if (pTBCD->nmcd.uItemState & CDIS_SELECTED) { //pressed
-                        drawButtonBG(pTBCD->nmcd, CMPCTheme::PlayerButtonClickedColor, AfxGetAppSettings().bModernZControls);
+                        drawButtonBG(pTBCD->nmcd, buttonClickedColor, AfxGetAppSettings().bModernZControls);
                     } else if (pTBCD->nmcd.uItemState & CDIS_HOT) {
-                        drawButtonBG(pTBCD->nmcd, CMPCTheme::PlayerButtonHotColor, AfxGetAppSettings().bModernZControls);
+                        drawButtonBG(pTBCD->nmcd, buttonHotColor, AfxGetAppSettings().bModernZControls);
                     }
                 }
             }
@@ -875,14 +881,14 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
             RECT r;
             GetItemRect(dummySeparatorIndex, &r);
             if (bUseModernStyle) {
-                dc.FillSolidRect(&r, CMPCTheme::PlayerBGColor);
+                dc.FillSolidRect(&r, playerBGColor);
             } else {
                 dc.FillSolidRect(&r, GetSysColor(COLOR_BTNFACE));
             }
             // Also hide the left separator
             GetItemRect(leftSeparatorIndex, &r);
             if (bUseModernStyle) {
-                dc.FillSolidRect(&r, CMPCTheme::PlayerBGColor);
+                dc.FillSolidRect(&r, playerBGColor);
             } else {
                 dc.FillSolidRect(&r, GetSysColor(COLOR_BTNFACE));
             }
