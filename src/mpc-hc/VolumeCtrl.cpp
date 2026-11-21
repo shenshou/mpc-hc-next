@@ -189,7 +189,13 @@ void CVolumeCtrl::OnNMCustomdraw(NMHDR* pNMHDR, LRESULT* pResult)
     LRESULT lr = CDRF_DODEFAULT;
 
     const bool bModernZ = AfxGetAppSettings().bModernZControls;
-    bool usetheme = AppIsThemeLoaded() || bModernZ;
+    const bool bMpcThemeLoaded = AppIsThemeLoaded();
+    const bool usetheme = bMpcThemeLoaded || bModernZ;
+    const COLORREF playerBGColor = bMpcThemeLoaded ? CMPCTheme::PlayerBGColor : RGB(32, 32, 32);
+    const COLORREF trackColor = bMpcThemeLoaded ? CMPCTheme::ScrollBGColor : RGB(76, 76, 82);
+    const COLORREF thumbColorDefault = bMpcThemeLoaded ? CMPCTheme::ScrollThumbColor : RGB(235, 235, 240);
+    const COLORREF thumbColorHover = bMpcThemeLoaded ? CMPCTheme::ScrollThumbHoverColor : RGB(200, 200, 210);
+    const COLORREF thumbColorDrag = bMpcThemeLoaded ? CMPCTheme::ScrollThumbDragColor : RGB(255, 255, 255);
 
     if (m_fSelfDrawn)
         switch (pNMCD->dwDrawStage) {
@@ -206,7 +212,7 @@ void CVolumeCtrl::OnNMCustomdraw(NMHDR* pNMHDR, LRESULT* pResult)
                     if (usetheme) {
                         CRect rect;
                         GetClientRect(rect);
-                        dc.FillSolidRect(&rect, CMPCTheme::PlayerBGColor);
+                        dc.FillSolidRect(&rect, playerBGColor);
                     }
 
                     getCustomChannelRect(&pNMCD->rc);
@@ -222,12 +228,12 @@ void CVolumeCtrl::OnNMCustomdraw(NMHDR* pNMHDR, LRESULT* pResult)
                             r.bottom = r.top + trackHeight;
                             CRgn region;
                             if (region.CreateRoundRectRgn(r.left, r.top, r.right, r.bottom, r.Height(), r.Height())) {
-                                CBrush brush(CMPCTheme::ScrollBGColor);
+                                CBrush brush(trackColor);
                                 dc.FillRgn(&region, &brush);
                             }
                         } else {
                             r.DeflateRect(0, dpiWindow.ScaleFloorY(6), 0, dpiWindow.ScaleFloorY(6));
-                            dc.FillSolidRect(r, CMPCTheme::ScrollBGColor);
+                            dc.FillSolidRect(r, trackColor);
                             CBrush fb;
                             fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
                             dc.FrameRect(r, &fb);
@@ -261,9 +267,9 @@ void CVolumeCtrl::OnNMCustomdraw(NMHDR* pNMHDR, LRESULT* pResult)
                     COLORREF shadow = GetSysColor(COLOR_3DSHADOW);
                     COLORREF light = GetSysColor(COLOR_3DHILIGHT);
                     if (usetheme) {
-                        const COLORREF thumbColor = m_bDrag ? CMPCTheme::ScrollThumbDragColor
-                                                   : m_bHover ? CMPCTheme::ScrollThumbHoverColor
-                                                              : CMPCTheme::ScrollThumbColor;
+                        const COLORREF thumbColor = m_bDrag ? thumbColorDrag
+                                                   : m_bHover ? thumbColorHover
+                                                              : thumbColorDefault;
                         if (bModernZ) {
                             const int diameter = std::min(r.Width(), r.Height());
                             CRect circle(0, 0, diameter, diameter);
@@ -518,6 +524,13 @@ void CVolumeCtrl::OnMouseLeave()
 void CVolumeCtrl::OnPaint()
 {
     const bool bModernZ = AfxGetAppSettings().bModernZControls;
+    const bool bMpcThemeLoaded = AppIsThemeLoaded();
+    const COLORREF playerBGColor = bMpcThemeLoaded ? playerBGColor : RGB(32, 32, 32);
+    const COLORREF trackColor = bMpcThemeLoaded ? trackColor : RGB(76, 76, 82);
+    const COLORREF progressColor = bMpcThemeLoaded ? progressColor : RGB(230, 230, 235);
+    const COLORREF thumbColorDefault = bMpcThemeLoaded ? CMPCTheme::ScrollThumbColor : RGB(235, 235, 240);
+    const COLORREF thumbColorHover = bMpcThemeLoaded ? CMPCTheme::ScrollThumbHoverColor : RGB(200, 200, 210);
+    const COLORREF thumbColorDrag = bMpcThemeLoaded ? CMPCTheme::ScrollThumbDragColor : RGB(255, 255, 255);
     if (m_fSelfDrawn && (AppIsThemeLoaded() || bModernZ)) {
         DpiHelper dpiWindow;
         dpiWindow.Override(GetSafeHwnd());
@@ -531,7 +544,7 @@ void CVolumeCtrl::OnPaint()
         CRect memRect = { 0, 0, cr.right, cr.bottom };
         CMPCThemeUtil::initMemDC(&dc, dcMem, bmMem, memRect);
 
-        dcMem.FillSolidRect(&memRect, CMPCTheme::PlayerBGColor);
+        dcMem.FillSolidRect(&memRect, playerBGColor);
         getCustomChannelRect(r);
         r.OffsetRect(-cr.TopLeft());
 
@@ -553,18 +566,18 @@ void CVolumeCtrl::OnPaint()
                 }
             };
 
-            fillRoundedRect(trackRect, CMPCTheme::ScrollBGColor);
+            fillRoundedRect(trackRect, trackColor);
             CRect filledRect(trackRect);
             filledRect.right = trackRect.left + lround(trackRect.Width() * float(GetPos()) / 100);
-            fillRoundedRect(filledRect, CMPCTheme::ScrollProgressColor);
+            fillRoundedRect(filledRect, progressColor);
 
             const int thumbSize = std::max<LONG>(8, dpiWindow.ScaleY(12));
             CRect thumb(0, 0, thumbSize, thumbSize);
             thumb.MoveToXY(trackRect.left + lround(trackRect.Width() * float(GetPos()) / 100) - thumbSize / 2,
                            trackRect.CenterPoint().y - thumbSize / 2);
-            const COLORREF thumbColor = m_bDrag ? CMPCTheme::ScrollThumbDragColor
-                                       : m_bHover ? CMPCTheme::ScrollThumbHoverColor
-                                                  : CMPCTheme::ScrollThumbColor;
+            const COLORREF thumbColor = m_bDrag ? thumbColorDrag
+                                       : m_bHover ? thumbColorHover
+                                                  : thumbColorDefault;
             CBrush brush(thumbColor);
             CPen pen(PS_NULL, 0, thumbColor);
             CBrush* oldBrush = dcMem.SelectObject(&brush);
@@ -576,12 +589,12 @@ void CVolumeCtrl::OnPaint()
             CRect filledRect, unfilledRect;
             filledRect = r;
             filledRect.right = r.left + lround(r.Width() * float(GetPos()) / 100);
-            dcMem.FillSolidRect(&filledRect, CMPCTheme::ScrollProgressColor);
+            dcMem.FillSolidRect(&filledRect, progressColor);
 
             if (filledRect.right < r.right) {
                 unfilledRect = r;
                 unfilledRect.left = filledRect.right;
-                dcMem.FillSolidRect(&unfilledRect, CMPCTheme::ScrollBGColor);
+                dcMem.FillSolidRect(&unfilledRect, trackColor);
             }
 
             CBrush fb;
