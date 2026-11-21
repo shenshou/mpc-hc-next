@@ -1833,19 +1833,8 @@ void CMainFrame::UpdateWindowCornerRounding()
         return;
     }
 
-    // Clip only the video view when it occupies the complete client area.
-    // The operating system remains responsible for drawing the outer frame.
-    CRect clientRect, viewRect;
-    GetClientRect(&clientRect);
-    m_wndView.GetWindowRect(&viewRect);
-    ScreenToClient(&viewRect);
-    const bool bViewFillsClient = viewRect.left <= clientRect.left && viewRect.top <= clientRect.top &&
-                                  viewRect.right >= clientRect.right && viewRect.bottom >= clientRect.bottom;
-    if (!bViewFillsClient) {
-        ::SetWindowRgn(m_wndView.m_hWnd, nullptr, TRUE);
-        return;
-    }
-
+    // Clip the video view itself in every windowed layout. The operating
+    // system remains responsible for drawing the outer frame and caption buttons.
     CRect viewClientRect;
     m_wndView.GetClientRect(&viewClientRect);
     const int cornerDiameter = std::max<LONG>(1, m_dpi.ScaleX(16));
