@@ -1820,53 +1820,39 @@ void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
 void CMainFrame::UpdateWindowCornerRounding()
 {
     const auto& s = AfxGetAppSettings();
-    if (!m_hWnd || !::IsWindow(m_hWnd)) {
+    if (!m_hWnd || !::IsWindow(m_hWnd) || !m_wndView.GetSafeHwnd()) {
         return;
     }
 
+    // Do not set a window region on the top-level frame. A custom region on a
+    // framed window interferes with DWM non-client rendering and can force the
+    // title bar and caption buttons into the legacy frame appearance.
     if (!s.bRoundVideoWindowCorners || IsFullScreenMainFrame() || IsFullScreenSeparate() ||
             IsD3DFullScreenMode() || IsZoomed() || IsIconic()) {
-        ::SetWindowRgn(m_hWnd, nullptr, TRUE);
-        if (m_wndView.GetSafeHwnd()) {
-            ::SetWindowRgn(m_wndView.m_hWnd, nullptr, TRUE);
-        }
+        ::SetWindowRgn(m_wndView.m_hWnd, nullptr, TRUE);
         return;
     }
 
-    CRect windowRect;
-    GetWindowRect(&windowRect);
-    const int width = windowRect.Width();
-    const int height = windowRect.Height();
-    if (width <= 0 || height <= 0) {
+    // Clip only the video view when it occupies the complete client area.
+    // The operating system remains responsible for drawing the outer frame.
+    CRect clientRect, viewRect;
+    GetClientRect(&clientRect);
+    m_wndView.GetWindowRect(&viewRect);
+    ScreenToClient(&viewRect);
+    const bool bViewFillsClient = viewRect.left <= clientRect.left && viewRect.top <= clientRect.top &&
+                                  viewRect.right >= clientRect.right && viewRect.bottom >= clientRect.bottom;
+    if (!bViewFillsClient) {
+        ::SetWindowRgn(m_wndView.m_hWnd, nullptr, TRUE);
         return;
     }
 
+    CRect viewClientRect;
+    m_wndView.GetClientRect(&viewClientRect);
     const int cornerDiameter = std::max<LONG>(1, m_dpi.ScaleX(16));
-    HRGN region = ::CreateRoundRectRgn(0, 0, width + 1, height + 1, cornerDiameter, cornerDiameter);
-    if (region && !::SetWindowRgn(m_hWnd, region, TRUE)) {
-        ::DeleteObject(region);
-    }
-
-    // In the minimal preset the video view fills the entire client area. Give that child window
-    // the same clip so the rendered video itself follows the rounded outer silhouette.
-    if (m_wndView.GetSafeHwnd()) {
-        CRect clientRect, viewRect;
-        GetClientRect(&clientRect);
-        m_wndView.GetWindowRect(&viewRect);
-        ScreenToClient(&viewRect);
-        const bool bViewFillsClient = viewRect.left <= clientRect.left && viewRect.top <= clientRect.top &&
-                                      viewRect.right >= clientRect.right && viewRect.bottom >= clientRect.bottom;
-        if (bViewFillsClient) {
-            CRect viewClientRect;
-            m_wndView.GetClientRect(&viewClientRect);
-            HRGN viewRegion = ::CreateRoundRectRgn(0, 0, viewClientRect.Width() + 1, viewClientRect.Height() + 1,
-                                                   cornerDiameter, cornerDiameter);
-            if (viewRegion && !::SetWindowRgn(m_wndView.m_hWnd, viewRegion, TRUE)) {
-                ::DeleteObject(viewRegion);
-            }
-        } else {
-            ::SetWindowRgn(m_wndView.m_hWnd, nullptr, TRUE);
-        }
+    HRGN viewRegion = ::CreateRoundRectRgn(0, 0, viewClientRect.Width() + 1, viewClientRect.Height() + 1,
+                                           cornerDiameter, cornerDiameter);
+    if (viewRegion && !::SetWindowRgn(m_wndView.m_hWnd, viewRegion, TRUE)) {
+        ::DeleteObject(viewRegion);
     }
 }
 void CMainFrame::UpdatePlayerUIAppearance()
