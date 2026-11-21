@@ -971,6 +971,7 @@ public:
     bool            bHideWindowedControls;
     bool            bAutoHideWindowedControls;
     bool            bRoundVideoWindowCorners;
+    bool            bModernZControls;
 
     int             nJpegQuality;
 
