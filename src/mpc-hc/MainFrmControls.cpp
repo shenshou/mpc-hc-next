@@ -189,6 +189,7 @@ void CMainFrameControls::ToggleControl(Panel panel)
             pBar->SetAutohidden(true);
         }
     }
+    m_pMainFrame->UpdateWindowCornerRounding();
 }
 
 void CMainFrameControls::SetToolbarsSelection(UINT nCS, bool bDelayHide/* = false*/)
