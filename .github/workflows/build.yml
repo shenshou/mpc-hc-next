@@ -58,39 +58,53 @@ jobs:
       - name: Install packaging tools (7-Zip and Inno Setup)
         shell: pwsh
         run: |
-          # The upstream build script discovers 7-Zip through PATH/registry and
-          # Inno Setup 6 through its uninstall registry key.
+          # Match the upstream build script's 7-Zip PATH/registry discovery and
+          # Inno Setup 6 registry discovery. Validate the exact executables here.
           choco install 7zip innosetup --yes --no-progress
           if ($LASTEXITCODE -ne 0) {
             throw "Chocolatey packaging-tool installation failed with exit code $LASTEXITCODE"
           }
 
-          $sevenZip = Get-Command 7z.exe -ErrorAction SilentlyContinue
-          if (-not $sevenZip) {
-            $candidate = Join-Path $env:ProgramFiles '7-Zip\\7z.exe'
-            if (Test-Path -LiteralPath $candidate) {
-              $candidateDirectory = Split-Path -Parent $candidate
-              $candidateDirectory | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
-              $sevenZip = Get-Item -LiteralPath $candidate
+          $sevenZipCommand = Get-Command 7z.exe -ErrorAction SilentlyContinue
+          if ($sevenZipCommand) {
+            $sevenZipPath = $sevenZipCommand.Source
+          }
+          else {
+            $candidate = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
+            if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+              throw "7z.exe was not found after installing 7-Zip. Checked PATH and $candidate"
             }
+            $sevenZipPath = $candidate
+            $sevenZipDirectory = Split-Path -Parent $sevenZipPath
+            $env:PATH = "$sevenZipDirectory;$env:PATH"
+            $sevenZipDirectory | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
           }
-          if (-not $sevenZip) {
-            throw '7z.exe was not found after installing 7-Zip.'
-          }
-          & $sevenZip.Source i | Select-Object -First 2
 
-          $innoKey = 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Inno Setup 6_is1'
+          & $sevenZipPath i | Select-Object -First 2
+          if ($LASTEXITCODE -ne 0) {
+            throw "7-Zip validation failed with exit code $LASTEXITCODE"
+          }
+
+          $innoKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1'
           if (-not (Test-Path -LiteralPath $innoKey)) {
-            $innoKey = 'HKLM:\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Inno Setup 6_is1'
+            $innoKey = 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1'
           }
           if (-not (Test-Path -LiteralPath $innoKey)) {
             throw 'Inno Setup 6 registry entry was not found after installation.'
           }
+
           $innoDirectory = (Get-ItemProperty -LiteralPath $innoKey).'Inno Setup: App Path'
           $iscc = Join-Path $innoDirectory 'ISCC.exe'
           if (-not (Test-Path -LiteralPath $iscc -PathType Leaf)) {
             throw "Inno Setup compiler was not found: $iscc"
           }
+
+          & $iscc /?
+          if ($LASTEXITCODE -gt 1) {
+            throw "Inno Setup compiler validation failed with exit code $LASTEXITCODE"
+          }
+
+          "SEVENZIP=$sevenZipPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Write-Host "7-Zip: $sevenZipPath"
           Write-Host "Inno Setup: $iscc"
 
