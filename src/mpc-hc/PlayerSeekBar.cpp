@@ -359,10 +359,10 @@ CRect CPlayerSeekBar::GetTimeRect() const
 
 bool CPlayerSeekBar::ShowTimeOnSeekBar() const
 {
-    if (!AppIsThemeLoaded()) {
-        return false; // time on the seekbar is only supported with the modern theme
-    }
     const CAppSettings& s = AfxGetAppSettings();
+    if (!AppIsThemeLoaded() && !s.bModernZControls) {
+        return false; // time on the seekbar is only supported by a modern control style
+    }
     switch (s.nTimeOnSeekBar) {
         case TIME_ON_SEEKBAR_ALWAYS:
             return true;
@@ -1041,7 +1041,7 @@ void CPlayerSeekBar::OnPaint()
         EnsureTimeFont();
         CFont* pOldFont = dc.SelectObject(&m_timeFont);
         int oldBkMode = dc.SetBkMode(TRANSPARENT);
-        COLORREF oldColor = dc.SetTextColor(CMPCTheme::TextFGColor);
+        COLORREF oldColor = dc.SetTextColor(AppIsThemeLoaded() ? CMPCTheme::TextFGColor : RGB(245, 245, 245));
         CRect rt(GetTimeRect());
         const int pad = m_pMainFrame->m_dpi.ScaleX(TIME_SECTION_PADDING);
         UINT align;
