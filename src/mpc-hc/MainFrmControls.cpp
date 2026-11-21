@@ -697,7 +697,10 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                     }
                 }
                 if (zone == DOCK_BOTTOM) {
-                    if (ShowToolbars(CS_NONE)) {
+                    const UINT nHideSelection = bWindowedAutoHide
+                                                ? (GetEffectiveToolbarsSelection() & ~(CS_SEEKBAR | CS_TOOLBAR))
+                                                : CS_NONE;
+                    if (ShowToolbars(nHideSelection)) {
                         bRecalcLayout = true;
                     }
                 }
