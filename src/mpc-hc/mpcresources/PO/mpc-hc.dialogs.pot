@@ -1927,7 +1927,7 @@ msgid "Display Current Time"
 msgstr ""
 
 msgctxt "IDD_PPAGETHEME_IDC_STATIC"
-msgid "Window Behavior"
+msgid "Window & Player UI"
 msgstr ""
 
 msgctxt "IDD_PPAGETHEME_IDC_CHECK7"
@@ -1940,6 +1940,18 @@ msgstr ""
 
 msgctxt "IDD_PPAGETHEME_IDC_CHECK10"
 msgid "Hide Windowed Controls"
+msgstr ""
+
+msgctxt "IDD_PPAGETHEME_IDC_AUTOHIDE_WINDOWED_CONTROLS"
+msgid "Auto-hide windowed controls"
+msgstr ""
+
+msgctxt "IDD_PPAGETHEME_IDC_ROUNDED_WINDOW_CORNERS"
+msgid "Round video window corners"
+msgstr ""
+
+msgctxt "IDD_PPAGETHEME_IDC_MODERNZ_CONTROLS"
+msgid "Use ModernZ control style"
 msgstr ""
 
 msgctxt "IDD_PPAGETHEME_IDC_STATIC"
