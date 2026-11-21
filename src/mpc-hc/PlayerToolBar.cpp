@@ -833,10 +833,10 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
     LRESULT lr = CDRF_DODEFAULT;
     const bool bMpcThemeLoaded = AppIsThemeLoaded();
     const bool bUseModernStyle = bMpcThemeLoaded || AfxGetAppSettings().bModernZControls;
-    const COLORREF playerBGColor = bMpcThemeLoaded ? playerBGColor : RGB(32, 32, 32);
-    const COLORREF buttonCheckedColor = bMpcThemeLoaded ? buttonCheckedColor : RGB(66, 66, 72);
-    const COLORREF buttonClickedColor = bMpcThemeLoaded ? buttonClickedColor : RGB(55, 55, 61);
-    const COLORREF buttonHotColor = bMpcThemeLoaded ? buttonHotColor : RGB(45, 45, 51);
+    const COLORREF playerBGColor = bMpcThemeLoaded ? CMPCTheme::PlayerBGColor : RGB(32, 32, 32);
+    const COLORREF buttonCheckedColor = bMpcThemeLoaded ? CMPCTheme::PlayerButtonCheckedColor : RGB(66, 66, 72);
+    const COLORREF buttonClickedColor = bMpcThemeLoaded ? CMPCTheme::PlayerButtonClickedColor : RGB(55, 55, 61);
+    const COLORREF buttonHotColor = bMpcThemeLoaded ? CMPCTheme::PlayerButtonHotColor : RGB(45, 45, 51);
 
     switch (pTBCD->nmcd.dwDrawStage) {
         case CDDS_PREERASE:
