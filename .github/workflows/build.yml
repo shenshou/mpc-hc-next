@@ -378,6 +378,7 @@ jobs:
             if (-not [regex]::IsMatch($listingText, $rendererPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
               throw "Portable ZIP $($archive.Name) does not contain MPCVR\$expectedRenderer"
             }
+          }
 
       - name: Upload x86/x64 portable and installer packages
         uses: actions/upload-artifact@v4
