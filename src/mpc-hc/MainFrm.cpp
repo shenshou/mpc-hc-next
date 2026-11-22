@@ -1859,6 +1859,7 @@ void CMainFrame::UpdateModernZOverlay()
                            && m_OSD.GetOSDType() != OSD_TYPE_BITMAP;
 
     if (!supported) {
+        m_bModernZOverlayActive = false;
         if (m_pModernZOverlay) {
             m_pModernZOverlay->SetBounds(CRect());
         }
@@ -1871,6 +1872,7 @@ void CMainFrame::UpdateModernZOverlay()
     }
 
     if (!m_pModernZOverlay->Bind(m_pVideoWnd)) {
+        m_bModernZOverlayActive = false;
         m_controls.SetModernZControlsHidden(false);
         return;
     }
@@ -1879,6 +1881,7 @@ void CMainFrame::UpdateModernZOverlay()
     const bool ready = !m_modernZVideoRect.IsRectEmpty()
                        && m_pModernZOverlay->SetBounds(m_modernZVideoRect)
                        && m_pModernZOverlay->IsReady();
+    m_bModernZOverlayActive = ready;
     m_controls.SetModernZControlsHidden(ready);
 }
 
@@ -9924,7 +9927,14 @@ void CMainFrame::MoveVideoWindow(bool fShowStats/* = false*/, bool bSetStoppedVi
             m_modernZVideoRect.SetRectEmpty();
         }
         if (m_pModernZOverlay) {
-            m_pModernZOverlay->SetBounds(m_modernZVideoRect);
+            if (m_bModernZOverlayActive) {
+                if (!m_pModernZOverlay->SetBounds(m_modernZVideoRect)) {
+                    m_bModernZOverlayActive = false;
+                    m_controls.SetModernZControlsHidden(false);
+                }
+            } else {
+                m_pModernZOverlay->SetBounds(CRect());
+            }
         }
 
         // the bitmap OSD is sized to the renderer's window, which can change without a WM_SIZE of the view

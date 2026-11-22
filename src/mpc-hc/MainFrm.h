@@ -754,6 +754,7 @@ protected:  // control bar embedded members
     std::unique_ptr<CModernZOverlay> m_pModernZOverlay;
     CRect m_modernZVideoRect;
     bool m_bUpdatingModernZOverlay = false;
+    bool m_bModernZOverlayActive = false;
     std::unique_ptr<UpdateCheckerDlg> m_pUpdateCheckerDlg;
 
     friend class CPPagePlayback; // TODO
