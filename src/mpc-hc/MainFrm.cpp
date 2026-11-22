@@ -1852,6 +1852,7 @@ void CMainFrame::UpdateModernZOverlay()
                            && settings.bModernZControls
                            && GetLoadState() == MLS::LOADED
                            && !m_fAudioOnly
+                           && (settings.nCS & (CS_SEEKBAR | CS_TOOLBAR)) == (CS_SEEKBAR | CS_TOOLBAR)
                            && IsWindowVisible()
                            && m_pVideoWnd
                            && ::IsWindow(m_pVideoWnd->GetSafeHwnd())

@@ -224,6 +224,8 @@ void CMainFrameControls::SetToolbarsSelection(UINT nCS, bool bDelayHide/* = fals
     if (ShowToolbarsSelection()) {
         m_pMainFrame->RecalcLayout();
     }
+    // Re-evaluate the overlay when the user's persistent toolbar/seekbar selection changes.
+    m_pMainFrame->UpdateModernZOverlay();
 }
 
 void CMainFrameControls::LoadState()
