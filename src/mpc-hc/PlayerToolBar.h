@@ -121,6 +121,8 @@ public:
     bool GetOverlayButtonRect(int index, CRect& rect) const;
     void DispatchOverlayButton(UINT command, int buttonIndex, const CRect& screenRect, bool rightClick = false);
     bool DrawOverlayButton(CDC& dc, int index, const CRect& rect, bool hot, bool pressed) const;
+    void DrawOverlayVolume(CDC& dc, const CRect& bounds) const;
+    void SetOverlayVolumeFromPoint(int x, const CRect& trackRect);
 
     CVolumeCtrl m_volctrl;
 

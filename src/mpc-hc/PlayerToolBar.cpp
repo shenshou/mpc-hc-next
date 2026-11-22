@@ -1048,6 +1048,81 @@ bool CPlayerToolBar::DrawOverlayButton(CDC& dc, int index, const CRect& rect, bo
     return ImageList_Draw(imageList->GetSafeHandle(), button.iBitmap, dc.GetSafeHdc(), x, y, ILD_TRANSPARENT) != FALSE;
 }
 
+void CPlayerToolBar::DrawOverlayVolume(CDC& dc, const CRect& bounds) const
+{
+    if (bounds.IsRectEmpty()) {
+        return;
+    }
+
+    const int iconSize = std::min(bounds.Height(), m_pMainFrame->m_dpi.ScaleY(18));
+    const int iconY = bounds.CenterPoint().y - iconSize / 2;
+    const CImage& icon = IsMuted() ? volumeOff : volumeOn;
+    if (!icon.IsNull()) {
+        icon.Draw(dc.GetSafeHdc(), bounds.left, iconY, iconSize, iconSize);
+    }
+
+    CRect track(bounds);
+    track.left += iconSize + m_pMainFrame->m_dpi.ScaleX(8);
+    track.DeflateRect(0, m_pMainFrame->m_dpi.ScaleY(6), 0, m_pMainFrame->m_dpi.ScaleY(6));
+    if (track.Width() <= 0 || track.Height() <= 0) {
+        return;
+    }
+
+    const COLORREF trackColor = AppIsThemeLoaded() ? CMPCTheme::ScrollBGColor : RGB(76, 76, 82);
+    const COLORREF progressColor = AppIsThemeLoaded() ? CMPCTheme::ScrollProgressColor : RGB(255, 149, 0);
+    CRgn trackRegion;
+    if (trackRegion.CreateRoundRectRgn(track.left, track.top, track.right, track.bottom,
+                                       track.Height(), track.Height())) {
+        CBrush trackBrush(trackColor);
+        dc.FillRgn(&trackRegion, &trackBrush);
+    }
+
+    int minimum = 0, maximum = 100;
+    m_volctrl.GetRange(minimum, maximum);
+    const int volume = std::clamp(m_volctrl.GetPos(), minimum, maximum);
+    const int progressX = track.left + (maximum > minimum
+                            ? (track.Width() * (volume - minimum)) / (maximum - minimum)
+                            : 0);
+    if (progressX > track.left) {
+        CRect progress(track);
+        progress.right = std::min(track.right, progressX);
+        CRgn progressRegion;
+        if (progressRegion.CreateRoundRectRgn(progress.left, progress.top, progress.right, progress.bottom,
+                                              progress.Height(), progress.Height())) {
+            CBrush progressBrush(progressColor);
+            dc.FillRgn(&progressRegion, &progressBrush);
+        }
+    }
+
+    const int thumbSize = std::max<LONG>(6, m_pMainFrame->m_dpi.ScaleY(8));
+    CRect thumb(0, 0, thumbSize, thumbSize);
+    thumb.MoveToXY(progressX - thumbSize / 2, track.CenterPoint().y - thumbSize / 2);
+    CBrush thumbBrush(progressColor);
+    CPen thumbPen(PS_SOLID, 1, progressColor);
+    CBrush* oldBrush = dc.SelectObject(&thumbBrush);
+    CPen* oldPen = dc.SelectObject(&thumbPen);
+    dc.Ellipse(&thumb);
+    dc.SelectObject(oldPen);
+    dc.SelectObject(oldBrush);
+}
+
+void CPlayerToolBar::SetOverlayVolumeFromPoint(int x, const CRect& trackRect)
+{
+    if (trackRect.Width() <= 0) {
+        return;
+    }
+
+    int minimum = 0, maximum = 100;
+    m_volctrl.GetRange(minimum, maximum);
+    if (maximum <= minimum) {
+        return;
+    }
+
+    const int clampedX = std::clamp(x, trackRect.left, trackRect.right);
+    const int volume = minimum + ((clampedX - trackRect.left) * (maximum - minimum)) / trackRect.Width();
+    m_volctrl.SetPosInternal(volume);
+}
+
 void CPlayerToolBar::OnSize(UINT nType, int cx, int cy)
 {
     __super::OnSize(nType, cx, cy);
