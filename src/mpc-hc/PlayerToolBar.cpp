@@ -942,10 +942,6 @@ void CPlayerToolBar::DispatchOverlayButton(UINT command, int buttonIndex, const 
     };
 
     if (!rightClick) {
-        if (command == ID_AUDIOS || command == ID_SUBTITLES) {
-            showMenuAtOverlay(command, VK_LBUTTON);
-            return;
-        }
         if (command >= ID_CUSTOM_ACTION1 && command <= ID_CUSTOM_ACTION4) {
             const UINT customCommand = CustomToCMD(command, VK_LBUTTON);
             if (CmdIsMenu(customCommand)) {
@@ -953,6 +949,10 @@ void CPlayerToolBar::DispatchOverlayButton(UINT command, int buttonIndex, const 
             } else {
                 m_pMainFrame->PostMessage(WM_COMMAND, customCommand);
             }
+            return;
+        }
+        if (CmdIsMenu(command)) {
+            showMenuAtOverlay(command, VK_LBUTTON);
             return;
         }
 
