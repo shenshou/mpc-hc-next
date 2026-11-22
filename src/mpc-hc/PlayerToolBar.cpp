@@ -1007,16 +1007,11 @@ bool CPlayerToolBar::DrawOverlayButton(CDC& dc, int index, const CRect& rect, bo
 
     const bool enabled = (button.fsState & TBSTATE_ENABLED) != 0;
     const bool checked = (button.fsState & TBSTATE_CHECKED) != 0;
-    const bool bMpcThemeLoaded = AppIsThemeLoaded();
     const bool bModernZ = AfxGetAppSettings().bModernZControls;
     if (bModernZ && (checked || hot || pressed)) {
-        const COLORREF color = bMpcThemeLoaded
-                               ? (pressed ? CMPCTheme::PlayerButtonClickedColor
-                                          : checked ? CMPCTheme::PlayerButtonCheckedColor
-                                                    : CMPCTheme::PlayerButtonHotColor)
-                               : (pressed ? RGB(55, 55, 61)
-                                          : checked ? RGB(66, 66, 72)
-                                                    : RGB(45, 45, 51));
+        const COLORREF color = pressed ? RGB(55, 55, 61)
+                                       : checked ? RGB(66, 66, 72)
+                                                 : RGB(45, 45, 51);
         CBrush brush(color);
         CPen pen(PS_NULL, 0, color);
         CBrush* oldBrush = dc.SelectObject(&brush);
@@ -1068,8 +1063,8 @@ void CPlayerToolBar::DrawOverlayVolume(CDC& dc, const CRect& bounds) const
         return;
     }
 
-    const COLORREF trackColor = AppIsThemeLoaded() ? CMPCTheme::ScrollBGColor : RGB(76, 76, 82);
-    const COLORREF progressColor = AppIsThemeLoaded() ? CMPCTheme::ScrollProgressColor : RGB(255, 149, 0);
+    const COLORREF trackColor = RGB(76, 76, 82);
+    const COLORREF progressColor = RGB(255, 149, 0);
     CRgn trackRegion;
     if (trackRegion.CreateRoundRectRgn(track.left, track.top, track.right, track.bottom,
                                        track.Height(), track.Height())) {

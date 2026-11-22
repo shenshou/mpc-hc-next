@@ -827,11 +827,10 @@ void CPlayerSeekBar::DrawOverlay(CDC& dc, const CRect& bounds)
         return;
     }
 
-    const bool bMpcThemeLoaded = AppIsThemeLoaded();
-    const COLORREF trackColor = bMpcThemeLoaded ? CMPCTheme::ScrollBGColor : RGB(76, 76, 82);
-    const COLORREF progressColor = bMpcThemeLoaded ? CMPCTheme::ScrollProgressColor : RGB(255, 149, 0);
-    const COLORREF chapterColor = bMpcThemeLoaded ? CMPCTheme::SeekbarChapterColor : RGB(180, 180, 190);
-    const COLORREF abColor = bMpcThemeLoaded ? CMPCTheme::SeekbarABColor : RGB(245, 165, 70);
+    const COLORREF trackColor = RGB(76, 76, 82);
+    const COLORREF progressColor = RGB(255, 149, 0);
+    const COLORREF chapterColor = RGB(180, 180, 190);
+    const COLORREF abColor = RGB(245, 165, 70);
 
     const int trackHeight = std::max<LONG>(2, m_pMainFrame->m_dpi.ScaleY(4));
     CRect track(bounds);
@@ -986,12 +985,11 @@ void CPlayerSeekBar::OnPaint()
 
     const CAppSettings& s = AfxGetAppSettings();
     if (s.bModernZControls) {
-        const bool bMpcThemeLoaded = AppIsThemeLoaded();
-        const COLORREF backgroundColor = bMpcThemeLoaded ? CMPCTheme::ContentBGColor : RGB(32, 32, 32);
-        const COLORREF trackColor = bMpcThemeLoaded ? CMPCTheme::ScrollBGColor : RGB(76, 76, 82);
-        const COLORREF progressColor = bMpcThemeLoaded ? CMPCTheme::ScrollProgressColor : RGB(255, 149, 0);
-        const COLORREF chapterColor = bMpcThemeLoaded ? CMPCTheme::SeekbarChapterColor : RGB(180, 180, 190);
-        const COLORREF abColor = bMpcThemeLoaded ? CMPCTheme::SeekbarABColor : RGB(245, 165, 70);
+        const COLORREF backgroundColor = RGB(32, 32, 32);
+        const COLORREF trackColor = RGB(76, 76, 82);
+        const COLORREF progressColor = RGB(255, 149, 0);
+        const COLORREF chapterColor = RGB(180, 180, 190);
+        const COLORREF abColor = RGB(245, 165, 70);
         CRect clientRect;
         GetClientRect(&clientRect);
         dc.FillSolidRect(&clientRect, backgroundColor);

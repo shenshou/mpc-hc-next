@@ -190,11 +190,11 @@ void CVolumeCtrl::OnNMCustomdraw(NMHDR* pNMHDR, LRESULT* pResult)
     const bool bModernZ = AfxGetAppSettings().bModernZControls;
     const bool bMpcThemeLoaded = AppIsThemeLoaded();
     const bool usetheme = bMpcThemeLoaded || bModernZ;
-    const COLORREF playerBGColor = bMpcThemeLoaded ? CMPCTheme::PlayerBGColor : RGB(32, 32, 32);
-    const COLORREF trackColor = bMpcThemeLoaded ? CMPCTheme::ScrollBGColor : RGB(76, 76, 82);
-    const COLORREF thumbColorDefault = bMpcThemeLoaded ? CMPCTheme::ScrollThumbColor : RGB(235, 235, 240);
-    const COLORREF thumbColorHover = bMpcThemeLoaded ? CMPCTheme::ScrollThumbHoverColor : RGB(200, 200, 210);
-    const COLORREF thumbColorDrag = bMpcThemeLoaded ? CMPCTheme::ScrollThumbDragColor : RGB(255, 255, 255);
+    const COLORREF playerBGColor = bModernZ ? RGB(32, 32, 32) : bMpcThemeLoaded ? CMPCTheme::PlayerBGColor : RGB(32, 32, 32);
+    const COLORREF trackColor = bModernZ ? RGB(76, 76, 82) : bMpcThemeLoaded ? CMPCTheme::ScrollBGColor : RGB(76, 76, 82);
+    const COLORREF thumbColorDefault = bModernZ ? RGB(235, 235, 240) : bMpcThemeLoaded ? CMPCTheme::ScrollThumbColor : RGB(235, 235, 240);
+    const COLORREF thumbColorHover = bModernZ ? RGB(200, 200, 210) : bMpcThemeLoaded ? CMPCTheme::ScrollThumbHoverColor : RGB(200, 200, 210);
+    const COLORREF thumbColorDrag = bModernZ ? RGB(255, 255, 255) : bMpcThemeLoaded ? CMPCTheme::ScrollThumbDragColor : RGB(255, 255, 255);
 
     if (m_fSelfDrawn)
         switch (pNMCD->dwDrawStage) {
