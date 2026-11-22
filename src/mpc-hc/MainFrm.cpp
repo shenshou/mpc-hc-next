@@ -86,6 +86,7 @@
 #include <SyncAllocatorPresenter.h>
 
 #include "FullscreenWnd.h"
+#include "ModernZOverlay.h"
 #include "Monitors.h"
 
 #include <WinAPIUtils.h>
@@ -1086,6 +1087,8 @@ LRESULT CMainFrame::OnLAVPropPageCallback(WPARAM, LPARAM lParam)
 
 void CMainFrame::OnDestroy()
 {
+    m_pModernZOverlay.reset();
+
     WTSUnRegisterSessionNotification();
     ShowTrayIcon(false);
     m_dropTarget.Revoke();
@@ -1819,7 +1822,6 @@ void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
 
 void CMainFrame::UpdatePlayerUIAppearance()
 {
-    // The overlay integration will activate the runtime mask once it is ready.
     if (m_wndSeekBar.GetSafeHwnd()) {
         m_wndSeekBar.Invalidate();
     }
@@ -1829,6 +1831,68 @@ void CMainFrame::UpdatePlayerUIAppearance()
             m_wndToolBar.m_volctrl.Invalidate();
         }
     }
+}
+
+void CMainFrame::UpdateModernZOverlay()
+{
+    if (m_bUpdatingModernZOverlay) {
+        return;
+    }
+
+    struct UpdateGuard {
+        bool& flag;
+        explicit UpdateGuard(bool& value) : flag(value) { flag = true; }
+        ~UpdateGuard() { flag = false; }
+    } guard(m_bUpdatingModernZOverlay);
+
+    const CAppSettings& settings = AfxGetAppSettings();
+    const bool supported = settings.bModernZControls
+                           && GetLoadState() == MLS::LOADED
+                           && !m_fAudioOnly
+                           && IsWindowVisible()
+                           && m_pVideoWnd
+                           && ::IsWindow(m_pVideoWnd->GetSafeHwnd())
+                           && !IsD3DFullScreenMode()
+                           && !m_graph.m_pMVRC
+                           && m_OSD.GetOSDType() != OSD_TYPE_BITMAP;
+
+    if (!supported) {
+        if (m_pModernZOverlay) {
+            m_pModernZOverlay->SetBounds(CRect());
+        }
+        m_controls.SetModernZControlsHidden(false);
+        return;
+    }
+
+    if (!m_pModernZOverlay) {
+        m_pModernZOverlay = std::make_unique<CModernZOverlay>(this, &m_wndSeekBar, &m_wndToolBar);
+    }
+
+    if (!m_pModernZOverlay->Bind(m_pVideoWnd)) {
+        m_controls.SetModernZControlsHidden(false);
+        return;
+    }
+
+    m_pModernZOverlay->SetAutoHide(settings.bModernZAutoHide);
+    const bool ready = !m_modernZVideoRect.IsRectEmpty()
+                       && m_pModernZOverlay->SetBounds(m_modernZVideoRect)
+                       && m_pModernZOverlay->IsReady();
+    m_controls.SetModernZControlsHidden(ready);
+}
+
+void CMainFrame::NotifyModernZOverlayMouseMove(const CPoint& screenPoint)
+{
+    if (m_pModernZOverlay) {
+        m_pModernZOverlay->NotifyVideoMouseMove(screenPoint);
+    }
+}
+
+void CMainFrame::NotifyModernZOverlayMouseLeave()
+{
+    if (m_pModernZOverlay) {
+        m_pModernZOverlay->NotifyVideoMouseLeave();
+    }
+    UpdateModernZOverlay();
 }
 
 void CMainFrame::OnSize(UINT nType, int cx, int cy)
@@ -9836,13 +9900,36 @@ void CMainFrame::MoveVideoWindow(bool fShowStats/* = false*/, bool bSetStoppedVi
             m_wndView.SetVideoRect(&windowRect);
         }
 
+        m_modernZVideoRect = videoRect;
+        m_modernZVideoRect.OffsetRect(windowRect.TopLeft());
+        if (m_pVideoWnd && ::IsWindow(m_pVideoWnd->GetSafeHwnd())) {
+            CRect videoClientRect;
+            m_pVideoWnd->GetClientRect(&videoClientRect);
+            CRect clippedVideoRect;
+            if (clippedVideoRect.IntersectRect(videoClientRect, m_modernZVideoRect)) {
+                m_modernZVideoRect = clippedVideoRect;
+            } else {
+                m_modernZVideoRect.SetRectEmpty();
+            }
+        } else {
+            m_modernZVideoRect.SetRectEmpty();
+        }
+        if (m_pModernZOverlay) {
+            m_pModernZOverlay->SetBounds(m_modernZVideoRect);
+        }
+
         // the bitmap OSD is sized to the renderer's window, which can change without a WM_SIZE of the view
         if (m_OSD.GetOSDType() == OSD_TYPE_BITMAP) {
             m_OSD.OnSize(SIZE_RESTORED, windowRect.Width(), windowRect.Height());
         }
     } else {
         m_wndView.SetVideoRect();
+        m_modernZVideoRect.SetRectEmpty();
+        if (m_pModernZOverlay) {
+            m_pModernZOverlay->SetBounds(CRect());
+        }
     }
+    UpdateModernZOverlay();
 }
 
 void CMainFrame::SetPreviewVideoPosition() {

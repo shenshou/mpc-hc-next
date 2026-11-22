@@ -399,6 +399,7 @@ bool CModernZOverlay::Render()
 
 void CModernZOverlay::OnMouseMove(UINT nFlags, CPoint point)
 {
+    UNREFERENCED_PARAMETER(nFlags);
     if (!m_trackingMouseLeave) {
         TRACKMOUSEEVENT tme = { sizeof(tme), TME_LEAVE, m_hWnd, 0 };
         m_trackingMouseLeave = ::TrackMouseEvent(&tme) != FALSE;
@@ -432,6 +433,7 @@ void CModernZOverlay::OnMouseLeave()
 
 void CModernZOverlay::OnLButtonDown(UINT nFlags, CPoint point)
 {
+    UNREFERENCED_PARAMETER(nFlags);
     if (m_seekHitRect.PtInRect(point)) {
         if (m_pSeekBar->BeginOverlayDrag()) {
             m_draggingSeek = true;
@@ -471,6 +473,7 @@ void CModernZOverlay::OnLButtonDown(UINT nFlags, CPoint point)
 
 void CModernZOverlay::OnLButtonUp(UINT nFlags, CPoint point)
 {
+    UNREFERENCED_PARAMETER(nFlags);
     if (m_draggingSeek || m_draggingVolume) {
         EndActiveDrag();
         if (GetCapture() == this) {
@@ -504,6 +507,7 @@ void CModernZOverlay::OnLButtonUp(UINT nFlags, CPoint point)
 
 void CModernZOverlay::OnRButtonUp(UINT nFlags, CPoint point)
 {
+    UNREFERENCED_PARAMETER(nFlags);
     if (m_volumeIconRect.PtInRect(point) && m_volumeButtonIndex >= 0) {
         CRect screenRect(m_volumeIconRect);
         ClientToScreen(&screenRect);
@@ -536,6 +540,7 @@ void CModernZOverlay::OnRButtonUp(UINT nFlags, CPoint point)
 
 BOOL CModernZOverlay::OnMouseWheel(UINT nFlags, short zDelta, CPoint point)
 {
+    UNREFERENCED_PARAMETER(nFlags);
     ScreenToClient(&point);
     if (!m_volumeBounds.PtInRect(point)) {
         return FALSE;
@@ -571,12 +576,14 @@ void CModernZOverlay::OnCaptureChanged(CWnd* pWnd)
 
 BOOL CModernZOverlay::OnEraseBkgnd(CDC* pDC)
 {
+    UNREFERENCED_PARAMETER(pDC);
     return TRUE;
 }
 
 void CModernZOverlay::OnPaint()
 {
     CPaintDC dc(this);
+    UNREFERENCED_PARAMETER(dc);
     Render();
 }
 

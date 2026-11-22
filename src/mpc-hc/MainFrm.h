@@ -155,6 +155,8 @@ struct SeekToCommand {
     bool bShowOSD;
 };
 
+class CModernZOverlay;
+
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame
 
@@ -749,6 +751,9 @@ protected:  // control bar embedded members
     CEditListEditor m_wndEditListEditor;
 
     std::unique_ptr<CColorControlsDlg> m_pColorControls;
+    std::unique_ptr<CModernZOverlay> m_pModernZOverlay;
+    CRect m_modernZVideoRect;
+    bool m_bUpdatingModernZOverlay = false;
     std::unique_ptr<UpdateCheckerDlg> m_pUpdateCheckerDlg;
 
     friend class CPPagePlayback; // TODO
@@ -1192,6 +1197,9 @@ public:
 
     void UpdateControlState(UpdateControlTarget target);
     void UpdatePlayerUIAppearance();
+    void UpdateModernZOverlay();
+    void NotifyModernZOverlayMouseMove(const CPoint& screenPoint);
+    void NotifyModernZOverlayMouseLeave();
 
     UINT GetNormalPresetCS() const;
     void ApplyTimeOnSeekBarChange();
