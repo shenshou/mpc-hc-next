@@ -1830,8 +1830,9 @@ void CMainFrame::UpdatePlayerUIAppearance()
         if (m_wndToolBar.m_volctrl.GetSafeHwnd()) {
             m_wndToolBar.m_volctrl.Invalidate();
         }
-    }
+    }    UpdateModernZOverlay();
 }
+
 
 void CMainFrame::UpdateModernZOverlay()
 {
@@ -1892,7 +1893,6 @@ void CMainFrame::NotifyModernZOverlayMouseLeave()
     if (m_pModernZOverlay) {
         m_pModernZOverlay->NotifyVideoMouseLeave();
     }
-    UpdateModernZOverlay();
 }
 
 void CMainFrame::OnSize(UINT nType, int cx, int cy)
