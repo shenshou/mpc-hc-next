@@ -567,7 +567,17 @@ void CModernZOverlay::OnMouseMove(UINT nFlags, CPoint point)
 
     KillTimer(TIMER_HIDE);
     if (m_draggingSeek) {
-        m_pSeekBar->UpdateOverlayDrag(m_pSeekBar->PositionFromOverlayPoint(point.x, m_seekHitRect));
+        const REFERENCE_TIME position = m_pSeekBar->PositionFromOverlayPoint(point.x, m_seekHitRect);
+        m_pSeekBar->UpdateOverlayDrag(position);
+        if (AfxGetAppSettings().fUseSeekbarHover) {
+            CPoint screenPoint(point);
+            ClientToScreen(&screenPoint);
+            if (m_pMainFrame->CanPreviewUse()) {
+                m_pSeekBar->PreviewWindowShowAtOverlay(position, screenPoint);
+            } else {
+                m_pSeekBar->ShowOverlayTooltip(position, screenPoint);
+            }
+        }
     } else if (m_draggingVolume) {
         UpdateVolumeFromPoint(point.x);
     } else {

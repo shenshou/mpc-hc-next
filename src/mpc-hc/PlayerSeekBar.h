@@ -146,7 +146,7 @@ public:
     REFERENCE_TIME PositionFromOverlayPoint(int x, const CRect& trackRect) const;
     void PreviewWindowShow(const CPoint point);
     // Show seek preview from an absolute media position supplied by an external control surface.
-    void PreviewWindowShowAt(REFERENCE_TIME rtPos);
+    void PreviewWindowShowAt(REFERENCE_TIME rtPos, bool allowDragging = false);
     void PreviewWindowShowAtOverlay(REFERENCE_TIME rtPos, const CPoint& screenPoint);
     void ShowOverlayTooltip(REFERENCE_TIME rtPos, const CPoint& screenPoint);
     void HideOverlayTooltip();

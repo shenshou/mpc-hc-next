@@ -1513,7 +1513,7 @@ void CPlayerSeekBar::PreviewWindowShowAtOverlay(REFERENCE_TIME rtPos, const CPoi
 
     m_pMainFrame->m_wndPreView.SetWindowPos(&wndTopMost, position.x, position.y, 0, 0,
                                              SWP_NOSIZE | SWP_NOACTIVATE);
-    PreviewWindowShowAt(rtPos);
+    PreviewWindowShowAt(rtPos, DraggingThumb());
 }
 
 void CPlayerSeekBar::ShowOverlayTooltip(REFERENCE_TIME rtPos, const CPoint& screenPoint)
@@ -1555,9 +1555,9 @@ void CPlayerSeekBar::HideOverlayTooltip()
     HideToolTip();
 }
 
-void CPlayerSeekBar::PreviewWindowShowAt(REFERENCE_TIME rtPos)
+void CPlayerSeekBar::PreviewWindowShowAt(REFERENCE_TIME rtPos, bool allowDragging)
 {
-    if (DraggingThumb() || !m_pMainFrame->CanPreviewUse()) {
+    if ((DraggingThumb() && !allowDragging) || !m_pMainFrame->CanPreviewUse()) {
         return;
     }
 
