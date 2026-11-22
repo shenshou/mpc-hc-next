@@ -142,6 +142,10 @@ CMainFrameControls::CMainFrameControls(CMainFrame* pMainFrame)
     , m_bModernZControlsHidden(AfxGetAppSettings().bModernZControls)
     , m_bDelayShowNotLoaded(false)
 {
+    // The visibility state is constructed before the frame creates its control bars.
+    // Start from the effective selection so a persisted ModernZ setting is reflected
+    // in the first layout pass, without changing the user's saved nCS configuration.
+    m_controlsVisibilityState.nCurrentCS = GetEffectiveToolbarsSelection();
 }
 
 CMainFrameControls::~CMainFrameControls()
