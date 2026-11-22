@@ -31,6 +31,7 @@ class CMainFrameControls
 {
     friend class CPlayerBar; // notifies of panel re-dock
     CMainFrame* m_pMainFrame;
+    bool m_bModernZControlsHidden;
 
     struct ControlsVisibilityState {
         UINT nVisibleCS;
@@ -76,6 +77,8 @@ public:
     std::map<Panel, CPlayerBar*> m_panels;
 
     bool ControlChecked(Toolbar toolbar);
+    bool ControlConfigured(Toolbar toolbar) const;
+    void SetModernZControlsHidden(bool hidden);
     bool ControlChecked(Panel panel);
     void ToggleControl(Toolbar toolbar);
     void ToggleControl(Panel panel);
