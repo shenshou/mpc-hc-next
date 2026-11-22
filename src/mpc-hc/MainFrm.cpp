@@ -1856,6 +1856,7 @@ void CMainFrame::UpdateModernZOverlay()
                            && m_pVideoWnd
                            && ::IsWindow(m_pVideoWnd->GetSafeHwnd())
                            && !IsD3DFullScreenMode()
+                           && !IsFullScreenMainFrameExclusiveMPCVR()
                            && !m_graph.m_pMVRC
                            && m_OSD.GetOSDType() != OSD_TYPE_BITMAP;
 
