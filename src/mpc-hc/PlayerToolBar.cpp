@@ -1769,6 +1769,8 @@ void CPlayerToolBar::ToolbarChange() {
 
     OnUpdateCmdUI(m_pMainFrame, FALSE); //useful for making sure button states are updated while in the options dialog
     Invalidate();
+    // The overlay mirrors the live toolbar sequence and must re-evaluate its fit after customization.
+    m_pMainFrame->UpdateModernZOverlay();
 }
 
 void CPlayerToolBar::OnTbnToolbarChange(NMHDR* pNMHDR, LRESULT* pResult) {
