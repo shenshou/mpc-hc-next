@@ -128,6 +128,8 @@ public:
 
     bool DraggingThumb();
     void PreviewWindowShow(const CPoint point);
+    // Show seek preview from an absolute media position supplied by an external control surface.
+    void PreviewWindowShowAt(REFERENCE_TIME rtPos);
     void UpdateToolTipTextPreview(REFERENCE_TIME rtPos);
 
     void UpdateTime();
