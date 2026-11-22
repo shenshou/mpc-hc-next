@@ -118,6 +118,8 @@ public:
     // Read-only toolbar snapshot and drawing hooks for an external ModernZ overlay.
     int GetOverlayButtonCount() const;
     bool GetOverlayButton(int index, TBBUTTON& button) const;
+    bool GetOverlayButtonRect(int index, CRect& rect) const;
+    void DispatchOverlayButton(UINT command, bool rightClick = false);
     bool DrawOverlayButton(CDC& dc, int index, const CRect& rect, bool hot, bool pressed) const;
 
     CVolumeCtrl m_volctrl;

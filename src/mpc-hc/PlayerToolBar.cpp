@@ -914,6 +914,62 @@ bool CPlayerToolBar::GetOverlayButton(int index, TBBUTTON& button) const
     return (button.fsState & TBSTATE_HIDDEN) == 0;
 }
 
+bool CPlayerToolBar::GetOverlayButtonRect(int index, CRect& rect) const
+{
+    TBBUTTON button = {};
+    if (!GetOverlayButton(index, button)) {
+        return false;
+    }
+
+    return const_cast<CPlayerToolBar*>(this)->GetItemRect(index, &rect) != FALSE;
+}
+
+void CPlayerToolBar::DispatchOverlayButton(UINT command, bool rightClick)
+{
+    if (!::IsWindow(m_hWnd) || command == 0) {
+        return;
+    }
+
+    if (!rightClick) {
+        // Send to the toolbar first so its existing ON_COMMAND_EX handlers
+        // (menus, mute, custom actions and stateful buttons) retain precedence.
+        SendMessage(WM_COMMAND, MAKEWPARAM(command, 0));
+        return;
+    }
+
+    UINT messageId = 0;
+    switch (command) {
+        case ID_PLAY_PLAY:
+            messageId = ID_FILE_OPENMEDIA;
+            break;
+        case ID_PLAY_FRAMESTEP:
+            messageId = ID_PLAY_FRAMESTEP_BACK;
+            break;
+        case ID_PLAY_STOP:
+            messageId = ID_FILE_CLOSE_AND_RESTORE;
+            break;
+        case ID_NAVIGATE_SKIPFORWARD:
+            messageId = ID_NAVIGATE_SKIPFORWARDFILE;
+            break;
+        case ID_NAVIGATE_SKIPBACK:
+            messageId = ID_NAVIGATE_SKIPBACKFILE;
+            break;
+        case ID_VOLUME_MUTE:
+            messageId = ID_STREAM_AUDIO_NEXT;
+            break;
+        case ID_CUSTOM_ACTION1:
+        case ID_CUSTOM_ACTION2:
+        case ID_CUSTOM_ACTION3:
+        case ID_CUSTOM_ACTION4:
+            messageId = CustomToCMD(command, VK_RBUTTON);
+            break;
+    }
+
+    if (messageId != 0) {
+        m_pMainFrame->SendMessage(WM_COMMAND, MAKEWPARAM(messageId, 0));
+    }
+}
+
 bool CPlayerToolBar::DrawOverlayButton(CDC& dc, int index, const CRect& rect, bool hot, bool pressed) const
 {
     TBBUTTON button = {};
@@ -963,8 +1019,7 @@ bool CPlayerToolBar::DrawOverlayButton(CDC& dc, int index, const CRect& rect, bo
 
     const int x = rect.left + (rect.Width() - imageWidth) / 2;
     const int y = rect.top + (rect.Height() - imageHeight) / 2;
-    return ImageList_Draw(imageList->GetSafeHandle(), button.iBitmap, dc.GetSafeHdc(), x, y,
-                          enabled ? ILD_TRANSPARENT : ILD_TRANSPARENT) != FALSE;
+    return ImageList_Draw(imageList->GetSafeHandle(), button.iBitmap, dc.GetSafeHdc(), x, y, ILD_TRANSPARENT) != FALSE;
 }
 
 void CPlayerToolBar::OnSize(UINT nType, int cx, int cy)
