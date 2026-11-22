@@ -774,6 +774,69 @@ bool CPlayerSeekBar::DraggingThumb()
     return m_bDraggingThumb;
 }
 
+void CPlayerSeekBar::GetOverlayState(OverlayState& state) const
+{
+    state.enabled = m_bEnabled;
+    state.hasDuration = m_bHasDuration;
+    state.start = m_rtStart;
+    state.stop = m_rtStop;
+    state.position = m_rtPos;
+    state.drawPosition = m_rtPosDraw;
+}
+
+bool CPlayerSeekBar::BeginOverlayDrag()
+{
+    if (!m_bEnabled || !m_bHasDuration || m_rtStart >= m_rtStop || m_bDraggingThumb) {
+        return false;
+    }
+
+    pauseAfterFirstScroll = AfxGetAppSettings().bPauseWhileDraggingSeekbar
+                            && m_pMainFrame->GetMediaState() == State_Running;
+    pausedForScrolling = false;
+    m_lastDragSeekTickCount = GetTickCount64();
+    m_rtHoverPos = m_rtPosDraw;
+    m_bDraggingThumb = true;
+    return true;
+}
+
+void CPlayerSeekBar::UpdateOverlayDrag(REFERENCE_TIME rtPos)
+{
+    if (!m_bDraggingThumb || !m_bHasDuration) {
+        return;
+    }
+
+    const REFERENCE_TIME rtPosDraw = std::clamp(rtPos, m_rtStart, m_rtStop);
+    REFERENCE_TIME rtSeekPos = rtPosDraw;
+    const CAppSettings& s = AfxGetAppSettings();
+    const REFERENCE_TIME duration = m_rtStop - m_rtStart;
+    if (duration >= 600000000LL && s.bFastSeek && GetKeyState(VK_SHIFT) >= 0) {
+        const REFERENCE_TIME rtMaxDiff = s.bAllowInaccurateFastseek
+                                         ? 200000000LL
+                                         : std::min(100000000LL, duration / 30);
+        rtSeekPos = m_pMainFrame->GetClosestKeyFrame(rtSeekPos, rtMaxDiff, rtMaxDiff);
+    }
+
+    SyncThumbToVideo(rtSeekPos, rtPosDraw);
+    CheckScrollDistance(CPoint(0, 0), std::min(5000000LL, m_rtStop / 30), 150LL);
+}
+
+void CPlayerSeekBar::EndOverlayDrag()
+{
+    if (!m_bDraggingThumb) {
+        return;
+    }
+
+    m_bDraggingThumb = false;
+    CheckScrollDistance(CPoint(0, 0), std::min(2500000LL, m_rtStop / 100), 0LL);
+    pauseAfterFirstScroll = false;
+    if (pausedForScrolling) {
+        pausedForScrolling = false;
+        m_pMainFrame->MediaControlRun();
+    }
+    m_pMainFrame->PreviewWindowHide();
+    m_bIgnoreLastTooltipPoint = true;
+}
+
 BEGIN_MESSAGE_MAP(CPlayerSeekBar, CDialogBar)
     ON_WM_PAINT()
     ON_WM_LBUTTONDOWN()

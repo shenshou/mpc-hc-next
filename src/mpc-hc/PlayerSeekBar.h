@@ -127,6 +127,20 @@ public:
     void RemoveChapters();
 
     bool DraggingThumb();
+
+    // Read-only state and explicit drag hooks for an external ModernZ overlay.
+    struct OverlayState {
+        bool enabled;
+        bool hasDuration;
+        REFERENCE_TIME start;
+        REFERENCE_TIME stop;
+        REFERENCE_TIME position;
+        REFERENCE_TIME drawPosition;
+    };
+    void GetOverlayState(OverlayState& state) const;
+    bool BeginOverlayDrag();
+    void UpdateOverlayDrag(REFERENCE_TIME rtPos);
+    void EndOverlayDrag();
     void PreviewWindowShow(const CPoint point);
     // Show seek preview from an absolute media position supplied by an external control surface.
     void PreviewWindowShowAt(REFERENCE_TIME rtPos);
