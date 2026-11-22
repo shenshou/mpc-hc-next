@@ -921,7 +921,8 @@ bool CPlayerToolBar::GetOverlayButtonRect(int index, CRect& rect) const
         return false;
     }
 
-    return const_cast<CPlayerToolBar*>(this)->GetItemRect(index, &rect) != FALSE;
+    CToolBarCtrl& toolbar = const_cast<CPlayerToolBar*>(this)->GetToolBarCtrl();
+    return toolbar.GetItemRect(index, &rect) != FALSE;
 }
 
 void CPlayerToolBar::DispatchOverlayButton(UINT command, bool rightClick)
