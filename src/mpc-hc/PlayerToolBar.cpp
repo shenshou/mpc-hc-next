@@ -832,11 +832,12 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
     LPNMTBCUSTOMDRAW pTBCD = reinterpret_cast<LPNMTBCUSTOMDRAW>(pNMHDR);
     LRESULT lr = CDRF_DODEFAULT;
     const bool bMpcThemeLoaded = AppIsThemeLoaded();
-    const bool bUseModernStyle = bMpcThemeLoaded || AfxGetAppSettings().bModernZControls;
-    const COLORREF playerBGColor = bMpcThemeLoaded ? CMPCTheme::PlayerBGColor : RGB(32, 32, 32);
-    const COLORREF buttonCheckedColor = bMpcThemeLoaded ? CMPCTheme::PlayerButtonCheckedColor : RGB(66, 66, 72);
-    const COLORREF buttonClickedColor = bMpcThemeLoaded ? CMPCTheme::PlayerButtonClickedColor : RGB(55, 55, 61);
-    const COLORREF buttonHotColor = bMpcThemeLoaded ? CMPCTheme::PlayerButtonHotColor : RGB(45, 45, 51);
+    const bool bModernZ = AfxGetAppSettings().bModernZControls;
+    const bool bUseModernStyle = bMpcThemeLoaded || bModernZ;
+    const COLORREF playerBGColor = bModernZ ? RGB(32, 32, 32) : bMpcThemeLoaded ? CMPCTheme::PlayerBGColor : RGB(32, 32, 32);
+    const COLORREF buttonCheckedColor = bModernZ ? RGB(66, 66, 72) : bMpcThemeLoaded ? CMPCTheme::PlayerButtonCheckedColor : RGB(66, 66, 72);
+    const COLORREF buttonClickedColor = bModernZ ? RGB(55, 55, 61) : bMpcThemeLoaded ? CMPCTheme::PlayerButtonClickedColor : RGB(55, 55, 61);
+    const COLORREF buttonHotColor = bModernZ ? RGB(45, 45, 51) : bMpcThemeLoaded ? CMPCTheme::PlayerButtonHotColor : RGB(45, 45, 51);
 
     switch (pTBCD->nmcd.dwDrawStage) {
         case CDDS_PREERASE:
