@@ -1954,6 +1954,10 @@ msgctxt "IDD_PPAGETHEME_IDC_MODERNZ_CONTROLS"
 msgid "Use ModernZ control style"
 msgstr "使用 ModernZ 控制列樣式"
 
+msgctxt "IDD_PPAGETHEME_IDC_MODERNZ_AUTOHIDE"
+msgid "Auto-hide ModernZ controls"
+msgstr "自動隱藏 ModernZ 控制列"
+
 msgctxt "IDD_PPAGETHEME_IDC_STATIC"
 msgid "Windows Integration"
 msgstr "Windows 整合"
