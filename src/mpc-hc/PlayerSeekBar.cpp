@@ -1449,6 +1449,74 @@ void CPlayerSeekBar::PreviewWindowShow(CPoint point) {
     }
 }
 
+void CPlayerSeekBar::PreviewWindowShowAtOverlay(REFERENCE_TIME rtPos, const CPoint& screenPoint)
+{
+    if (!m_bHasDuration || !m_pMainFrame->CanPreviewUse()) {
+        return;
+    }
+
+    if (!m_pMainFrame->m_wndPreView.IsWindowVisible()) {
+        m_pMainFrame->m_wndPreView.SetWindowSize();
+    }
+
+    CRect previewRect;
+    m_pMainFrame->m_wndPreView.GetWindowRect(&previewRect);
+
+    MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+    GetMonitorInfoW(MonitorFromPoint(screenPoint, MONITOR_DEFAULTTONEAREST), &monitorInfo);
+
+    CPoint position(screenPoint);
+    position.x -= previewRect.Width() / 2 - 2;
+    const bool showBelow = AfxGetAppSettings().nHoverPosition == TIME_TOOLTIP_BELOW_SEEKBAR
+                           && monitorInfo.rcWork.bottom > screenPoint.y + 8 + previewRect.Height();
+    position.y = showBelow ? screenPoint.y + 8 : screenPoint.y - previewRect.Height() - 13;
+    position.x = std::max(monitorInfo.rcWork.left + 5,
+                          std::min(position.x, monitorInfo.rcWork.right - previewRect.Width() - 5));
+    position.y = std::max(monitorInfo.rcWork.top + 5,
+                          std::min(position.y, monitorInfo.rcWork.bottom - previewRect.Height() - 5));
+
+    m_pMainFrame->m_wndPreView.SetWindowPos(&wndTopMost, position.x, position.y, 0, 0,
+                                             SWP_NOSIZE | SWP_NOACTIVATE);
+    PreviewWindowShowAt(rtPos);
+}
+
+void CPlayerSeekBar::ShowOverlayTooltip(REFERENCE_TIME rtPos, const CPoint& screenPoint)
+{
+    if (!m_bHasDuration || m_pMainFrame->CanPreviewUse() || !m_tooltip.GetSafeHwnd()) {
+        return;
+    }
+
+    GenerateToolTipText(rtPos);
+    m_ti.lpszText = (LPTSTR)(LPCTSTR)m_tooltipText;
+    m_tooltip.SetToolInfo(&m_ti);
+
+    const CSize bubbleSize(m_tooltip.GetBubbleSize(&m_ti));
+    MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+    GetMonitorInfoW(MonitorFromPoint(screenPoint, MONITOR_DEFAULTTONEAREST), &monitorInfo);
+
+    CPoint position(screenPoint);
+    if (AfxGetAppSettings().nHoverPosition == TIME_TOOLTIP_ABOVE_SEEKBAR) {
+        position.x -= bubbleSize.cx / 2 - 2;
+        position.y -= bubbleSize.cy + m_pMainFrame->m_dpi.ScaleY(13);
+    } else {
+        position.x += m_pMainFrame->m_dpi.ScaleX(10);
+        position.y += m_pMainFrame->m_dpi.ScaleY(20);
+    }
+    position.x = std::max(monitorInfo.rcWork.left + 5,
+                          std::min(position.x, monitorInfo.rcWork.right - bubbleSize.cx - 5));
+    position.y = std::max(monitorInfo.rcWork.top + 5,
+                          std::min(position.y, monitorInfo.rcWork.bottom - bubbleSize.cy - 5));
+
+    m_tooltip.SendMessage(TTM_TRACKPOSITION, 0, MAKELPARAM(position.x, position.y));
+    m_tooltip.SendMessage(TTM_TRACKACTIVATE, TRUE, (LPARAM)&m_ti);
+    m_tooltipState = TOOLTIP_VISIBLE;
+}
+
+void CPlayerSeekBar::HideOverlayTooltip()
+{
+    HideToolTip();
+}
+
 void CPlayerSeekBar::PreviewWindowShowAt(REFERENCE_TIME rtPos)
 {
     if (DraggingThumb() || !m_pMainFrame->CanPreviewUse()) {

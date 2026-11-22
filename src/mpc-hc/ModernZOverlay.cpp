@@ -236,6 +236,10 @@ void CModernZOverlay::UpdateVolumeFromPoint(int x)
 
 void CModernZOverlay::EndActiveDrag()
 {
+    KillTimer(TIMER_TOOLTIP);
+    m_hoveringSeek = false;
+    m_pSeekBar->HideOverlayTooltip();
+    m_pMainFrame->PreviewWindowHide();
     if (m_draggingSeek) {
         m_pSeekBar->EndOverlayDrag();
         m_draggingSeek = false;
@@ -429,6 +433,25 @@ void CModernZOverlay::OnMouseMove(UINT nFlags, CPoint point)
             m_hotButtonIndex = hot;
             Render();
         }
+
+        if (m_seekHitRect.PtInRect(point) && AfxGetAppSettings().fUseSeekbarHover) {
+            m_hoveringSeek = true;
+            m_hoverSeekPosition = m_pSeekBar->PositionFromOverlayPoint(point.x, m_seekHitRect);
+            m_hoverSeekScreenPoint = point;
+            ClientToScreen(&m_hoverSeekScreenPoint);
+            if (m_pMainFrame->CanPreviewUse()) {
+                KillTimer(TIMER_TOOLTIP);
+                m_pSeekBar->HideOverlayTooltip();
+                m_pSeekBar->PreviewWindowShowAtOverlay(m_hoverSeekPosition, m_hoverSeekScreenPoint);
+            } else {
+                SetTimer(TIMER_TOOLTIP, TOOLTIP_DELAY_MS, nullptr);
+            }
+        } else {
+            m_hoveringSeek = false;
+            KillTimer(TIMER_TOOLTIP);
+            m_pSeekBar->HideOverlayTooltip();
+            m_pMainFrame->PreviewWindowHide();
+        }
     }
 
 }
@@ -437,6 +460,10 @@ void CModernZOverlay::OnMouseLeave()
 {
     m_trackingMouseLeave = false;
     m_hotButtonIndex = -1;
+    m_hoveringSeek = false;
+    KillTimer(TIMER_TOOLTIP);
+    m_pSeekBar->HideOverlayTooltip();
+    m_pMainFrame->PreviewWindowHide();
     Render();
     StartHideTimer();
 }
@@ -445,6 +472,10 @@ void CModernZOverlay::OnLButtonDown(UINT nFlags, CPoint point)
 {
     UNREFERENCED_PARAMETER(nFlags);
     if (m_seekHitRect.PtInRect(point)) {
+        KillTimer(TIMER_TOOLTIP);
+        m_hoveringSeek = false;
+        m_pSeekBar->HideOverlayTooltip();
+        m_pMainFrame->PreviewWindowHide();
         if (m_pSeekBar->BeginOverlayDrag()) {
             m_draggingSeek = true;
             SetCapture();
@@ -566,6 +597,14 @@ BOOL CModernZOverlay::OnMouseWheel(UINT nFlags, short zDelta, CPoint point)
 
 void CModernZOverlay::OnTimer(UINT_PTR nIDEvent)
 {
+    if (nIDEvent == TIMER_TOOLTIP) {
+        KillTimer(TIMER_TOOLTIP);
+        if (m_hoveringSeek && !m_draggingSeek && AfxGetAppSettings().fUseSeekbarHover
+                && !m_pMainFrame->CanPreviewUse()) {
+            m_pSeekBar->ShowOverlayTooltip(m_hoverSeekPosition, m_hoverSeekScreenPoint);
+        }
+        return;
+    }
     if (nIDEvent == TIMER_HIDE) {
         KillTimer(TIMER_HIDE);
         if (m_autoHide && !m_draggingSeek && !m_draggingVolume && !m_inMenu) {

@@ -146,6 +146,9 @@ public:
     void PreviewWindowShow(const CPoint point);
     // Show seek preview from an absolute media position supplied by an external control surface.
     void PreviewWindowShowAt(REFERENCE_TIME rtPos);
+    void PreviewWindowShowAtOverlay(REFERENCE_TIME rtPos, const CPoint& screenPoint);
+    void ShowOverlayTooltip(REFERENCE_TIME rtPos, const CPoint& screenPoint);
+    void HideOverlayTooltip();
     void UpdateToolTipTextPreview(REFERENCE_TIME rtPos);
 
     void UpdateTime();
