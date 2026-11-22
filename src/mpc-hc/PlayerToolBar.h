@@ -119,7 +119,7 @@ public:
     int GetOverlayButtonCount() const;
     bool GetOverlayButton(int index, TBBUTTON& button) const;
     bool GetOverlayButtonRect(int index, CRect& rect) const;
-    void DispatchOverlayButton(UINT command, int buttonIndex, bool rightClick = false);
+    void DispatchOverlayButton(UINT command, int buttonIndex, const CRect& screenRect, bool rightClick = false);
     bool DrawOverlayButton(CDC& dc, int index, const CRect& rect, bool hot, bool pressed) const;
 
     CVolumeCtrl m_volctrl;

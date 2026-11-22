@@ -925,15 +925,36 @@ bool CPlayerToolBar::GetOverlayButtonRect(int index, CRect& rect) const
     return toolbar.GetItemRect(index, &rect) != FALSE;
 }
 
-void CPlayerToolBar::DispatchOverlayButton(UINT command, int buttonIndex, bool rightClick)
+void CPlayerToolBar::DispatchOverlayButton(UINT command, int buttonIndex, const CRect& screenRect, bool rightClick)
 {
     if (!::IsWindow(m_hWnd) || command == 0) {
         return;
     }
 
+    auto showMenuAtOverlay = [&](UINT menuCommand, UINT mouseButtonSource) {
+        CToolBarCtrl& toolbar = GetToolBarCtrl();
+        toolbar.PressButton(command, TRUE);
+        m_pMainFrame->ToolbarContextMenu(menuCommand, buttonIndex, CRect(screenRect));
+        toolbar.PressButton(command, FALSE);
+        UNREFERENCED_PARAMETER(mouseButtonSource);
+    };
+
     if (!rightClick) {
-        // Send to the toolbar first so its existing ON_COMMAND_EX handlers
-        // (menus, mute, custom actions and stateful buttons) retain precedence.
+        if (command == ID_AUDIOS || command == ID_SUBTITLES) {
+            showMenuAtOverlay(command, VK_LBUTTON);
+            return;
+        }
+        if (command >= ID_CUSTOM_ACTION1 && command <= ID_CUSTOM_ACTION4) {
+            const UINT customCommand = CustomToCMD(command, VK_LBUTTON);
+            if (CmdIsMenu(customCommand)) {
+                showMenuAtOverlay(customCommand, VK_LBUTTON);
+            } else {
+                m_pMainFrame->PostMessage(WM_COMMAND, customCommand);
+            }
+            return;
+        }
+
+        // Route remaining commands through the toolbar's existing command map.
         SendMessage(WM_COMMAND, MAKEWPARAM(command, 0));
         return;
     }
@@ -968,7 +989,7 @@ void CPlayerToolBar::DispatchOverlayButton(UINT command, int buttonIndex, bool r
 
     if (messageId > 0) {
         if (CmdIsMenu(messageId)) {
-            DoCustomContextMenu(command, messageId, buttonIndex, VK_RBUTTON);
+            showMenuAtOverlay(messageId, VK_RBUTTON);
         } else {
             m_pMainFrame->PostMessage(WM_COMMAND, messageId);
         }
