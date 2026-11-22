@@ -64,6 +64,7 @@ private:
     BOOL m_fLimitWindowProportions;
     BOOL m_bHideWindowedControls;
     BOOL m_bModernZControls;
+    BOOL m_bModernZAutoHide;
     BOOL m_bUseEnhancedTaskBar;
     BOOL m_bUseSMTC;
     // Custom view preset (hotkey 4) definition

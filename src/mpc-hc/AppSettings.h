@@ -970,6 +970,7 @@ public:
 
     bool            bHideWindowedControls;
     bool            bModernZControls;
+    bool            bModernZAutoHide;
 
     int             nJpegQuality;
 
