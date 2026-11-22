@@ -150,12 +150,20 @@ void CModernZOverlay::NotifyVideoMouseMove(const CPoint& screenPoint)
     if (m_screenRect.PtInRect(screenPoint)) {
         ShowOverlay();
     } else if (IsWindowVisible()) {
+        KillTimer(TIMER_TOOLTIP);
+        m_hoveringSeek = false;
+        m_pSeekBar->HideOverlayTooltip();
+        m_pMainFrame->PreviewWindowHide();
         StartHideTimer();
     }
 }
 
 void CModernZOverlay::NotifyVideoMouseLeave()
 {
+    KillTimer(TIMER_TOOLTIP);
+    m_hoveringSeek = false;
+    m_pSeekBar->HideOverlayTooltip();
+    m_pMainFrame->PreviewWindowHide();
     StartHideTimer();
 }
 
@@ -194,6 +202,10 @@ void CModernZOverlay::ShowOverlay()
 void CModernZOverlay::HideOverlay()
 {
     KillTimer(TIMER_HIDE);
+    KillTimer(TIMER_TOOLTIP);
+    m_hoveringSeek = false;
+    m_pSeekBar->HideOverlayTooltip();
+    m_pMainFrame->PreviewWindowHide();
     m_trackingMouseLeave = false;
     m_hotButtonIndex = -1;
     if (::IsWindow(m_hWnd)) {
