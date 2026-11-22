@@ -648,9 +648,15 @@ void CModernZOverlay::OnMouseLeave()
 void CModernZOverlay::OnLButtonDown(UINT nFlags, CPoint point)
 {
     UNREFERENCED_PARAMETER(nFlags);
+    KillTimer(TIMER_TOOLTIP);
+    KillTimer(TIMER_VOLUME_TOOLTIP);
     KillTimer(TIMER_BUTTON_TOOLTIP);
     m_hoverTooltipButtonIndex = -1;
+    m_hoveringSeek = false;
+    m_hoveringVolume = false;
     HideVolumeTooltip();
+    m_pSeekBar->HideOverlayTooltip();
+    m_pMainFrame->PreviewWindowHide();
     if (m_seekHitRect.PtInRect(point)) {
         KillTimer(TIMER_TOOLTIP);
         m_hoveringSeek = false;
@@ -764,9 +770,15 @@ void CModernZOverlay::OnLButtonUp(UINT nFlags, CPoint point)
 void CModernZOverlay::OnRButtonDown(UINT nFlags, CPoint point)
 {
     UNREFERENCED_PARAMETER(nFlags);
+    KillTimer(TIMER_TOOLTIP);
+    KillTimer(TIMER_VOLUME_TOOLTIP);
     KillTimer(TIMER_BUTTON_TOOLTIP);
     m_hoverTooltipButtonIndex = -1;
+    m_hoveringSeek = false;
+    m_hoveringVolume = false;
     HideVolumeTooltip();
+    m_pSeekBar->HideOverlayTooltip();
+    m_pMainFrame->PreviewWindowHide();
     m_rightPressedVolume = m_volumeIconRect.PtInRect(point) && m_volumeButtonIndex >= 0;
     m_rightPressedButtonIndex = m_rightPressedVolume ? -1 : HitTestButton(point);
     if (m_rightPressedVolume || m_rightPressedButtonIndex >= 0) {
