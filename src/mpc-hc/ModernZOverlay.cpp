@@ -261,8 +261,6 @@ void CModernZOverlay::ShowOverlay()
 void CModernZOverlay::HideOverlay()
 {
     KillTimer(TIMER_HIDE);
-    KillTimer(TIMER_HIDE);
-    KillTimer(TIMER_HIDE);
     KillTimer(TIMER_TOOLTIP);
     KillTimer(TIMER_VOLUME_TOOLTIP);
     KillTimer(TIMER_BUTTON_TOOLTIP);
@@ -665,6 +663,7 @@ void CModernZOverlay::OnMouseLeave()
 void CModernZOverlay::OnLButtonDown(UINT nFlags, CPoint point)
 {
     UNREFERENCED_PARAMETER(nFlags);
+    KillTimer(TIMER_HIDE);
     KillTimer(TIMER_TOOLTIP);
     KillTimer(TIMER_VOLUME_TOOLTIP);
     KillTimer(TIMER_BUTTON_TOOLTIP);
@@ -796,6 +795,7 @@ void CModernZOverlay::OnLButtonUp(UINT nFlags, CPoint point)
 void CModernZOverlay::OnRButtonDown(UINT nFlags, CPoint point)
 {
     UNREFERENCED_PARAMETER(nFlags);
+    KillTimer(TIMER_HIDE);
     KillTimer(TIMER_TOOLTIP);
     KillTimer(TIMER_VOLUME_TOOLTIP);
     KillTimer(TIMER_BUTTON_TOOLTIP);
