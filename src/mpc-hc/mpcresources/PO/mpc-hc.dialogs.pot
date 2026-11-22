@@ -1942,8 +1942,6 @@ msgctxt "IDD_PPAGETHEME_IDC_CHECK10"
 msgid "Hide Windowed Controls"
 msgstr ""
 
-msgctxt "IDD_PPAGETHEME_IDC_AUTOHIDE_WINDOWED_CONTROLS"
-msgctxt "IDD_PPAGETHEME_IDC_ROUNDED_WINDOW_CORNERS"
 msgctxt "IDD_PPAGETHEME_IDC_MODERNZ_CONTROLS"
 msgid "Use ModernZ control style"
 msgstr ""
