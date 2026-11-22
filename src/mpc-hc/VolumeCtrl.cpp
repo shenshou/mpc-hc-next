@@ -36,7 +36,7 @@ CVolumeCtrl::CVolumeCtrl(bool fSelfDrawn)
     : m_fSelfDrawn(fSelfDrawn)
     , m_bDrag(false)
     , m_bHover(false)
-    , modernStyle(AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls)
+    , modernStyle(AppIsThemeLoaded())
     , showPercentage(AfxGetAppSettings().bShowVolumePercentage)
 {
 }
@@ -47,7 +47,7 @@ CVolumeCtrl::~CVolumeCtrl()
 
 LRESULT CVolumeCtrl::OnMPCThemeChanged(WPARAM wParam, LPARAM lParam)
 {
-    modernStyle = AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls;
+    modernStyle = AppIsThemeLoaded();
     CToolTipCtrl* pTip = GetToolTips();
     if (modernStyle && nullptr != pTip && nullptr == themedToolTip.m_hWnd) {
         themedToolTip.SubclassWindow(pTip->m_hWnd);
@@ -60,8 +60,7 @@ LRESULT CVolumeCtrl::OnMPCThemeChanged(WPARAM wParam, LPARAM lParam)
 
 bool CVolumeCtrl::Create(CWnd* pParentWnd)
 {
-    const bool useModernStyle = AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls;
-    DWORD tooltipStyle = showPercentage && useModernStyle ? 0 : TBS_TOOLTIPS;
+    DWORD tooltipStyle = showPercentage && AppIsThemeLoaded() ? 0 : TBS_TOOLTIPS;
     if (!CSliderCtrl::Create(WS_CHILD | WS_VISIBLE | TBS_NOTICKS | TBS_HORZ | tooltipStyle, CRect(0, 0, 0, 0), pParentWnd, IDC_SLIDER1)) {
         return false;
     }
@@ -73,7 +72,7 @@ bool CVolumeCtrl::Create(CWnd* pParentWnd)
     SetPageSize(s.nVolumeStep);
     SetLineSize(0);
 
-    if (useModernStyle) {
+    if (AppIsThemeLoaded()) {
         CToolTipCtrl* pTip = GetToolTips();
         if (NULL != pTip) {
             themedToolTip.SubclassWindow(pTip->m_hWnd);
@@ -131,7 +130,7 @@ END_MESSAGE_MAP()
 
 void CVolumeCtrl::getCustomChannelRect(LPRECT rc)
 {
-    if (AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls) {
+    if (AppIsThemeLoaded()) {
         CRect channelRect;
         GetClientRect(channelRect);
         CopyRect(rc, CRect(channelRect.left, channelRect.top, channelRect.right - AfxGetMainFrame()->m_dpi.ScaleFloorX(2), channelRect.bottom));
@@ -222,23 +221,12 @@ void CVolumeCtrl::OnNMCustomdraw(NMHDR* pNMHDR, LRESULT* pResult)
                         dpiWindow.Override(GetSafeHwnd());
 
                         CRect r(pNMCD->rc);
-                        if (bModernZ) {
-                            const int trackHeight = std::max<LONG>(2, dpiWindow.ScaleY(4));
-                            r.top = r.CenterPoint().y - trackHeight / 2;
-                            r.bottom = r.top + trackHeight;
-                            CRgn region;
-                            if (region.CreateRoundRectRgn(r.left, r.top, r.right, r.bottom, r.Height(), r.Height())) {
-                                CBrush brush(trackColor);
-                                dc.FillRgn(&region, &brush);
-                            }
-                        } else {
-                            r.DeflateRect(0, dpiWindow.ScaleFloorY(6), 0, dpiWindow.ScaleFloorY(6));
-                            dc.FillSolidRect(r, trackColor);
-                            CBrush fb;
-                            fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
-                            dc.FrameRect(r, &fb);
-                            fb.DeleteObject();
-                        }
+                        r.DeflateRect(0, dpiWindow.ScaleFloorY(6), 0, dpiWindow.ScaleFloorY(6));
+                        dc.FillSolidRect(r, CMPCTheme::ScrollBGColor);
+                        CBrush fb;
+                        fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
+                        dc.FrameRect(r, &fb);
+                        fb.DeleteObject();
                     } else {
                         CPen shadow;
                         CPen light;
@@ -267,27 +255,17 @@ void CVolumeCtrl::OnNMCustomdraw(NMHDR* pNMHDR, LRESULT* pResult)
                     COLORREF shadow = GetSysColor(COLOR_3DSHADOW);
                     COLORREF light = GetSysColor(COLOR_3DHILIGHT);
                     if (usetheme) {
-                        const COLORREF thumbColor = m_bDrag ? thumbColorDrag
-                                                   : m_bHover ? thumbColorHover
-                                                              : thumbColorDefault;
-                        if (bModernZ) {
-                            const int diameter = std::min(r.Width(), r.Height());
-                            CRect circle(0, 0, diameter, diameter);
-                            circle.MoveToXY(r.CenterPoint().x - diameter / 2, r.CenterPoint().y - diameter / 2);
-                            CBrush brush(thumbColor);
-                            CPen pen(PS_NULL, 0, thumbColor);
-                            CBrush* oldBrush = dc.SelectObject(&brush);
-                            CPen* oldPen = dc.SelectObject(&pen);
-                            dc.Ellipse(&circle);
-                            dc.SelectObject(oldPen);
-                            dc.SelectObject(oldBrush);
+                        CBrush fb;
+                        if (m_bDrag) {
+                            dc.FillSolidRect(r, CMPCTheme::ScrollThumbDragColor);
+                        } else if (m_bHover) {
+                            dc.FillSolidRect(r, CMPCTheme::ScrollThumbHoverColor);
                         } else {
-                            dc.FillSolidRect(r, thumbColor);
-                            CBrush fb;
-                            fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
-                            dc.FrameRect(r, &fb);
-                            fb.DeleteObject();
+                            dc.FillSolidRect(r, CMPCTheme::ScrollThumbColor);
                         }
+                        fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
+                        dc.FrameRect(r, &fb);
+                        fb.DeleteObject();
                     } else {
                         dc.Draw3dRect(&r, light, 0);
                         r.DeflateRect(0, 0, 1, 1);
@@ -321,7 +299,7 @@ void CVolumeCtrl::OnLButtonDown(UINT nFlags, CPoint point)
     int start, stop;
     GetRange(start, stop);
 
-    if (!(AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls)) {
+    if (!(AppIsThemeLoaded() && modernStyle)) {
         r.left += 3;
         r.right -= 4;
     }
@@ -333,7 +311,7 @@ void CVolumeCtrl::OnLButtonDown(UINT nFlags, CPoint point)
     } else {
         int w = r.right - r.left;
         if (start < stop) {
-            if (!(AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls)) {
+            if (!(AppIsThemeLoaded() && modernStyle)) {
                 SetPosInternal(start + ((stop - start) * (point.x - r.left) + (w / 2)) / w);
             } else {
                 SetPosInternal(start + lround((stop - start) * float(point.x - r.left) / w));
@@ -341,7 +319,7 @@ void CVolumeCtrl::OnLButtonDown(UINT nFlags, CPoint point)
         }
     }
     m_bDrag = true;
-    if (AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls) {
+    if (AppIsThemeLoaded() && modernStyle) {
         if (themedToolTip.m_hWnd) {
             TOOLINFO ti = { sizeof(TOOLINFO) };
             ti.uFlags = TTF_TRACK | TTF_IDISHWND | TTF_ABSOLUTE;
@@ -421,7 +399,7 @@ BOOL CVolumeCtrl::OnMouseWheel(UINT nFlags, short zDelta, CPoint point)
 
 void CVolumeCtrl::invalidateThumb()
 {
-    if (!(AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls)) {
+    if (!(AppIsThemeLoaded() && modernStyle)) {
         SetRangeMax(100, TRUE);
     }
 }
@@ -487,7 +465,7 @@ void CVolumeCtrl::OnMouseMove(UINT nFlags, CPoint point)
 {
     checkHover(point);
 
-    if ((AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls) && m_bDrag) {
+    if (AppIsThemeLoaded() && modernStyle && m_bDrag) {
         updateModernVolCtrl(point);
     } else {
         CSliderCtrl::OnMouseMove(nFlags, point);
@@ -497,7 +475,7 @@ void CVolumeCtrl::OnMouseMove(UINT nFlags, CPoint point)
 
 void CVolumeCtrl::OnLButtonUp(UINT nFlags, CPoint point)
 {
-    if (AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls) {
+    if (AppIsThemeLoaded() && modernStyle) {
         if (m_bDrag) {
             ReleaseCapture();
         }
@@ -521,17 +499,8 @@ void CVolumeCtrl::OnMouseLeave()
 }
 
 
-void CVolumeCtrl::OnPaint()
-{
-    const bool bModernZ = AfxGetAppSettings().bModernZControls;
-    const bool bMpcThemeLoaded = AppIsThemeLoaded();
-    const COLORREF playerBGColor = bMpcThemeLoaded ? CMPCTheme::PlayerBGColor : RGB(32, 32, 32);
-    const COLORREF trackColor = bMpcThemeLoaded ? CMPCTheme::ScrollBGColor : RGB(76, 76, 82);
-    const COLORREF progressColor = bMpcThemeLoaded ? CMPCTheme::ScrollProgressColor : RGB(230, 230, 235);
-    const COLORREF thumbColorDefault = bMpcThemeLoaded ? CMPCTheme::ScrollThumbColor : RGB(235, 235, 240);
-    const COLORREF thumbColorHover = bMpcThemeLoaded ? CMPCTheme::ScrollThumbHoverColor : RGB(200, 200, 210);
-    const COLORREF thumbColorDrag = bMpcThemeLoaded ? CMPCTheme::ScrollThumbDragColor : RGB(255, 255, 255);
-    if (m_fSelfDrawn && (AppIsThemeLoaded() || bModernZ)) {
+void CVolumeCtrl::OnPaint() {
+    if (m_fSelfDrawn && AppIsThemeLoaded() && modernStyle) {
         DpiHelper dpiWindow;
         dpiWindow.Override(GetSafeHwnd());
 
@@ -544,67 +513,29 @@ void CVolumeCtrl::OnPaint()
         CRect memRect = { 0, 0, cr.right, cr.bottom };
         CMPCThemeUtil::initMemDC(&dc, dcMem, bmMem, memRect);
 
-        dcMem.FillSolidRect(&memRect, playerBGColor);
+        dcMem.FillSolidRect(&memRect, CMPCTheme::PlayerBGColor);
         getCustomChannelRect(r);
+        //r.DeflateRect(0, dpiWindow.ScaleFloorY(3), 0, dpiWindow.ScaleFloorY(2));
         r.OffsetRect(-cr.TopLeft());
 
-        if (bModernZ) {
-            const int trackHeight = std::max<LONG>(2, dpiWindow.ScaleY(4));
-            CRect trackRect(r);
-            trackRect.top = r.CenterPoint().y - trackHeight / 2;
-            trackRect.bottom = trackRect.top + trackHeight;
+        CRect filledRect, unfilledRect;
+        filledRect = r;
+        filledRect.right = r.left + lround(r.Width() * float(GetPos()) / 100);
+        dcMem.FillSolidRect(&filledRect, CMPCTheme::ScrollProgressColor);
 
-            auto fillRoundedRect = [&](const CRect& rect, COLORREF color) {
-                if (rect.IsRectEmpty()) {
-                    return;
-                }
-                CRgn region;
-                if (region.CreateRoundRectRgn(rect.left, rect.top, rect.right, rect.bottom,
-                                              rect.Height(), rect.Height())) {
-                    CBrush brush(color);
-                    dcMem.FillRgn(&region, &brush);
-                }
-            };
-
-            fillRoundedRect(trackRect, trackColor);
-            CRect filledRect(trackRect);
-            filledRect.right = trackRect.left + lround(trackRect.Width() * float(GetPos()) / 100);
-            fillRoundedRect(filledRect, progressColor);
-
-            const int thumbSize = std::max<LONG>(8, dpiWindow.ScaleY(12));
-            CRect thumb(0, 0, thumbSize, thumbSize);
-            thumb.MoveToXY(trackRect.left + lround(trackRect.Width() * float(GetPos()) / 100) - thumbSize / 2,
-                           trackRect.CenterPoint().y - thumbSize / 2);
-            const COLORREF thumbColor = m_bDrag ? thumbColorDrag
-                                       : m_bHover ? thumbColorHover
-                                                  : thumbColorDefault;
-            CBrush brush(thumbColor);
-            CPen pen(PS_NULL, 0, thumbColor);
-            CBrush* oldBrush = dcMem.SelectObject(&brush);
-            CPen* oldPen = dcMem.SelectObject(&pen);
-            dcMem.Ellipse(&thumb);
-            dcMem.SelectObject(oldPen);
-            dcMem.SelectObject(oldBrush);
-        } else {
-            CRect filledRect, unfilledRect;
-            filledRect = r;
-            filledRect.right = r.left + lround(r.Width() * float(GetPos()) / 100);
-            dcMem.FillSolidRect(&filledRect, progressColor);
-
-            if (filledRect.right < r.right) {
-                unfilledRect = r;
-                unfilledRect.left = filledRect.right;
-                dcMem.FillSolidRect(&unfilledRect, trackColor);
-            }
-
-            CBrush fb;
-            fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
-            dcMem.FrameRect(r, &fb);
-            fb.DeleteObject();
+        if (filledRect.right < r.right) { //do not fill bg if already full
+            unfilledRect = r;
+            unfilledRect.left = filledRect.right;
+            dcMem.FillSolidRect(&unfilledRect, CMPCTheme::ScrollBGColor);
         }
 
+        CBrush fb;
+        fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
+        dcMem.FrameRect(r, &fb);
+        fb.DeleteObject();
+
         if (showPercentage) {
-            dcMem.SetTextColor(bMpcThemeLoaded ? CMPCTheme::TextFGColor : RGB(245, 245, 245));
+            dcMem.SetTextColor(CMPCTheme::TextFGColor);
             CFont f;
             LOGFONT lf = { 0 };
             lf.lfHeight = r.Height();
@@ -625,8 +556,9 @@ void CVolumeCtrl::OnPaint()
         __super::OnPaint(); //can trigger OnNMCustomdraw
     }
 }
+
 BOOL CVolumeCtrl::OnEraseBkgnd(CDC* pDC) {
-    if (m_fSelfDrawn && (AppIsThemeLoaded() || AfxGetAppSettings().bModernZControls)) {
+    if (m_fSelfDrawn && AppIsThemeLoaded() && modernStyle) {
         return TRUE;
     } else {
         return CSliderCtrl::OnEraseBkgnd(pDC);
