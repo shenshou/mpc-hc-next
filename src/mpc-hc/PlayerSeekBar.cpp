@@ -1486,8 +1486,7 @@ void CPlayerSeekBar::ShowOverlayTooltip(REFERENCE_TIME rtPos, const CPoint& scre
         return;
     }
 
-    GenerateToolTipText(rtPos);
-    m_ti.lpszText = (LPTSTR)(LPCTSTR)m_tooltipText;
+    KillTimer(TIMER_SHOWHIDE_TOOLTIP);
     HideToolTip();
     GenerateToolTipText(rtPos);
     m_ti.lpszText = (LPTSTR)(LPCTSTR)m_tooltipText;
