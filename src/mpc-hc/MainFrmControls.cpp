@@ -189,7 +189,6 @@ void CMainFrameControls::ToggleControl(Panel panel)
             pBar->SetAutohidden(true);
         }
     }
-    m_pMainFrame->UpdateWindowCornerRounding();
 }
 
 void CMainFrameControls::SetToolbarsSelection(UINT nCS, bool bDelayHide/* = false*/)
@@ -202,7 +201,6 @@ void CMainFrameControls::SetToolbarsSelection(UINT nCS, bool bDelayHide/* = fals
     if (ShowToolbarsSelection()) {
         m_pMainFrame->RecalcLayout();
     }
-    m_pMainFrame->UpdateWindowCornerRounding();
 }
 
 void CMainFrameControls::LoadState()
@@ -358,14 +356,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
     const auto& s = AfxGetAppSettings();
     auto& st = m_controlsVisibilityState;
     const auto ePolicy = s.eHideFullscreenControlsPolicy;
-    const bool bWindowedAutoHide = s.bAutoHideWindowedControls &&
-                                   !m_pMainFrame->IsFullScreenMainFrame() && !m_pMainFrame->IsFullScreenSeparate();
-    const bool bLegacyWindowedAutoHide = s.bHideFullscreenControls && s.bHideWindowedControls &&
-                                         !m_pMainFrame->IsFullScreenMainFrame() && !m_pMainFrame->IsFullScreenSeparate();
-    const bool bWindowedAutoHideOnly = bWindowedAutoHide && !bLegacyWindowedAutoHide;
-    const auto eEffectivePolicy = bWindowedAutoHideOnly
-                                  ? CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_HOVERED : ePolicy;
-    const unsigned uTimeout = bWindowedAutoHideOnly ? 600u : s.uHideFullscreenControlsDelay;
+    const unsigned uTimeout = s.uHideFullscreenControlsDelay;
 
     CPoint screenPoint;
     //VERIFY(GetCursorPos(&screenPoint));
@@ -375,14 +366,10 @@ void CMainFrameControls::UpdateToolbarsVisibility()
 
     const MLS mls = m_pMainFrame->GetLoadState();
 
-    const bool bCanAutoHide = (mls == MLS::LOADED || m_bDelayShowNotLoaded) &&
-                              (m_pMainFrame->IsFullScreenMainFrame()
-                               ? s.bHideFullscreenControls
-                               : (bWindowedAutoHide || (s.bHideFullscreenControls && s.bHideWindowedControls &&
-                                  !m_pMainFrame->IsFullScreenSeparate()))) &&
-                              (bWindowedAutoHide || ePolicy != CAppSettings::HideFullscreenControlsPolicy::SHOW_NEVER);
-    // When used on its own, the new windowed option hides only the seekbar and player toolbar.
-    const bool bCanHideDockedPanels = !bWindowedAutoHideOnly && s.bHideFullscreenDockedPanels;
+    const bool bCanAutoHide = s.bHideFullscreenControls && (mls == MLS::LOADED || m_bDelayShowNotLoaded) &&
+                              (m_pMainFrame->IsFullScreenMainFrame() || s.bHideWindowedControls && !m_pMainFrame->IsFullScreenSeparate()) &&
+                              ePolicy != CAppSettings::HideFullscreenControlsPolicy::SHOW_NEVER;
+    const bool bCanHideDockedPanels = s.bHideFullscreenDockedPanels;
 
     bool bEnumedPanelZones = false;
 
@@ -414,7 +401,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
     }
 
     if (m_pMainFrame->IsFullScreenMainFrame() && s.bHideFullscreenControls &&
-            eEffectivePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_NEVER) {
+            ePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_NEVER) {
         // hide completely
         mask.hide(maskAll);
     } else if (bCanAutoHide) {
@@ -450,10 +437,10 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                             while (hWnd && hWnd != m_pMainFrame->m_hWnd) {
                                 auto it = targetParents.find(hWnd);
                                 if (it != targetParents.end()) {
-                                    if (eEffectivePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_CURSOR_MOVED) {
+                                    if (ePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_CURSOR_MOVED) {
                                         mask.show(maskAll);
                                     } else {
-                                        ASSERT(eEffectivePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_HOVERED);
+                                        ASSERT(ePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_HOVERED);
                                         mask.show(it->second);
                                     }
                                 }
@@ -487,7 +474,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                     const bool bHoveringExclSeekbar = (bExclSeekbar && exclSeekbarRect.PtInRect(clientPoint));
                     ret = true;
                     if (clientRect.PtInRect(clientPoint)) {
-                        if (eEffectivePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_CURSOR_MOVED) {
+                        if (ePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_CURSOR_MOVED) {
                             if (!bHoveringExclSeekbar) {
                                 CRect nondockRect(clientRect);
                                 nondockRect.DeflateRect(uLeft, uTop, uRight, uBottom);
@@ -499,7 +486,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                                 }
                             }
                         } else {
-                            ASSERT(eEffectivePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_HOVERED);
+                            ASSERT(ePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_HOVERED);
                             // show hovered
                             auto hoveringZone = [&](unsigned uTargetTop, unsigned uTargetLeft, unsigned uTargetRight, unsigned uTargetBottom) {
                                 DockZone ret = DOCK_NONE;
@@ -535,7 +522,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                 return ret;
             };
             if (!testCapture() && !testHovering() &&
-                    eEffectivePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_CURSOR_MOVED &&
+                    ePolicy == CAppSettings::HideFullscreenControlsPolicy::SHOW_WHEN_CURSOR_MOVED &&
                     bOnWindow && !CMouse::PointEqualsImprecise(screenPoint, st.lastShowPoint) &&
                     !m_pMainFrame->m_wndView.Dragging() && uTimeout > 0) {
                 // show when corresponding hide policy is used, not hovering, non-zero timeout, the cursor moved, and not dragging
@@ -597,7 +584,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
         }
     }
 
-    if (!bCanHideDockedPanels && !bWindowedAutoHideOnly) {
+    if (!bCanHideDockedPanels) {
         for (const auto& pair : m_panels) {
             if (pair.second->IsAutohidden()) {
                 bRecalcLayout = true;
@@ -619,7 +606,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                     bSetTick = true;
                 }
                 auto it = m_panelZones.find(zone);
-                if (it != m_panelZones.end() && !bWindowedAutoHideOnly) {
+                if (it != m_panelZones.end()) {
                     const auto& panels = it->second;
                     for (const auto panel : panels) {
                         if (m_panels[panel]->IsAutohidden()) {
@@ -701,10 +688,7 @@ void CMainFrameControls::UpdateToolbarsVisibility()
                     }
                 }
                 if (zone == DOCK_BOTTOM) {
-                    const UINT nHideSelection = bWindowedAutoHideOnly
-                                                ? (GetEffectiveToolbarsSelection() & ~(CS_SEEKBAR | CS_TOOLBAR))
-                                                : CS_NONE;
-                    if (ShowToolbars(nHideSelection)) {
+                    if (ShowToolbars(CS_NONE)) {
                         bRecalcLayout = true;
                     }
                 }
@@ -728,7 +712,6 @@ void CMainFrameControls::UpdateToolbarsVisibility()
 
     if (bRecalcLayout) {
         m_pMainFrame->RecalcLayout();
-        m_pMainFrame->UpdateWindowCornerRounding();
     }
 
     st.bLastCanAutoHideToolbars = bCanAutoHide;
