@@ -148,8 +148,7 @@ bool CModernZOverlay::SetBounds(const CRect& videoRect)
     // of allowing the overlay buttons to overlap the volume slider.
     const int requiredVideoWidth = std::max(m_pMainFrame->m_dpi.ScaleX(260),
                                             requiredButtonWidth + m_pMainFrame->m_dpi.ScaleX(166));
-    if (videoRect.Height() <= m_pMainFrame->m_dpi.ScaleY(68)
-            || videoRect.Width() <= requiredVideoWidth) {
+    if (videoRect.Height() <= height || videoRect.Width() <= requiredVideoWidth) {
         m_available = false;
         m_screenRect.SetRectEmpty();
         HideOverlay();
