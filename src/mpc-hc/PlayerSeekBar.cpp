@@ -137,7 +137,7 @@ CSize CPlayerSeekBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 {
     CSize ret = __super::CalcFixedLayout(bStretch, bHorz);
     const CAppSettings& s = AfxGetAppSettings();
-    if (AppIsThemeLoaded() || s.bModernZControls) {
+    if (AppIsThemeLoaded()) {
         ret.cy = m_pMainFrame->m_dpi.ScaleY(5 + s.iModernSeekbarHeight); //expand the toolbar if using "fill" mode
     } else {
         ret.cy = m_pMainFrame->m_dpi.ScaleY(20);
@@ -360,8 +360,8 @@ CRect CPlayerSeekBar::GetTimeRect() const
 bool CPlayerSeekBar::ShowTimeOnSeekBar() const
 {
     const CAppSettings& s = AfxGetAppSettings();
-    if (!AppIsThemeLoaded() && !s.bModernZControls) {
-        return false; // time on the seekbar is only supported by a modern control style
+    if (!AppIsThemeLoaded()) {
+        return false; // time on the seekbar is only supported with the modern theme
     }
     switch (s.nTimeOnSeekBar) {
         case TIME_ON_SEEKBAR_ALWAYS:
@@ -1041,7 +1041,7 @@ void CPlayerSeekBar::OnPaint()
         EnsureTimeFont();
         CFont* pOldFont = dc.SelectObject(&m_timeFont);
         int oldBkMode = dc.SetBkMode(TRANSPARENT);
-        COLORREF oldColor = dc.SetTextColor(AppIsThemeLoaded() ? CMPCTheme::TextFGColor : RGB(245, 245, 245));
+        COLORREF oldColor = dc.SetTextColor(CMPCTheme::TextFGColor);
         CRect rt(GetTimeRect());
         const int pad = m_pMainFrame->m_dpi.ScaleX(TIME_SECTION_PADDING);
         UINT align;
