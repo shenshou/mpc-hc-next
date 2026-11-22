@@ -789,6 +789,12 @@ void CModernZOverlay::OnRButtonDown(UINT nFlags, CPoint point)
     m_rightPressedButtonIndex = m_rightPressedVolume ? -1 : HitTestButton(point);
     if (m_rightPressedVolume || m_rightPressedButtonIndex >= 0) {
         SetCapture();
+    } else if (!m_pMainFrame->m_fFullScreen
+               && !m_seekHitRect.PtInRect(point)
+               && !m_volumeTrackRect.PtInRect(point)
+               && !m_volumeIconRect.PtInRect(point)) {
+        ClientToScreen(&point);
+        m_pMainFrame->PostMessage(WM_NCRBUTTONDOWN, HTCAPTION, MAKELPARAM(point.x, point.y));
     }
 }
 
