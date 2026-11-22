@@ -1817,33 +1817,6 @@ void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
     OSDBarSetPos();
 }
 
-void CMainFrame::UpdateWindowCornerRounding()
-{
-    const auto& s = AfxGetAppSettings();
-    if (!m_hWnd || !::IsWindow(m_hWnd) || !m_wndView.GetSafeHwnd()) {
-        return;
-    }
-
-    // Do not set a window region on the top-level frame. A custom region on a
-    // framed window interferes with DWM non-client rendering and can force the
-    // title bar and caption buttons into the legacy frame appearance.
-    if (!s.bRoundVideoWindowCorners || IsFullScreenMainFrame() || IsFullScreenSeparate() ||
-            IsD3DFullScreenMode() || IsZoomed() || IsIconic()) {
-        ::SetWindowRgn(m_wndView.m_hWnd, nullptr, TRUE);
-        return;
-    }
-
-    // Clip the video view itself in every windowed layout. The operating
-    // system remains responsible for drawing the outer frame and caption buttons.
-    CRect viewClientRect;
-    m_wndView.GetClientRect(&viewClientRect);
-    const int cornerDiameter = std::max<LONG>(1, m_dpi.ScaleX(16));
-    HRGN viewRegion = ::CreateRoundRectRgn(0, 0, viewClientRect.Width() + 1, viewClientRect.Height() + 1,
-                                           cornerDiameter, cornerDiameter);
-    if (viewRegion && !::SetWindowRgn(m_wndView.m_hWnd, viewRegion, TRUE)) {
-        ::DeleteObject(viewRegion);
-    }
-}
 void CMainFrame::UpdatePlayerUIAppearance()
 {
     RecalcLayout();
@@ -1890,7 +1863,6 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
     if (nType != SIZE_MINIMIZED) {
         OSDBarSetPos();
     }
-    UpdateWindowCornerRounding();
 }
 
 void CMainFrame::OnSizing(UINT nSide, LPRECT lpRect)
