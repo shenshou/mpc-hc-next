@@ -348,7 +348,8 @@ void CModernZOverlay::ShowButtonTooltip(int buttonIndex, const CPoint& screenPoi
     m_volumeTooltip.SendMessage(TTM_UPDATETIPTEXT, 0, (LPARAM)&m_volumeToolInfo);
     m_volumeTooltip.SendMessage(TTM_TRACKACTIVATE, TRUE, (LPARAM)&m_volumeToolInfo);
 
-    const CSize bubbleSize(m_volumeTooltip.GetBubbleSize(&m_volumeToolInfo));
+    const DWORD bubbleSizeValue = static_cast<DWORD>(m_volumeTooltip.SendMessage(TTM_GETBUBBLESIZE, 0, (LPARAM)&m_volumeToolInfo));
+    const CSize bubbleSize(LOWORD(bubbleSizeValue), HIWORD(bubbleSizeValue));
     MONITORINFO monitorInfo = { sizeof(monitorInfo) };
     GetMonitorInfoW(MonitorFromPoint(screenPoint, MONITOR_DEFAULTTONEAREST), &monitorInfo);
     CPoint position(screenPoint.x - bubbleSize.cx / 2,
