@@ -149,6 +149,8 @@ public:
     void PreviewWindowShowAtOverlay(REFERENCE_TIME rtPos, const CPoint& screenPoint);
     void ShowOverlayTooltip(REFERENCE_TIME rtPos, const CPoint& screenPoint);
     void HideOverlayTooltip();
+    void ToggleOverlayPreview();
+    void HandleOverlayXButton(UINT nButton);
     void UpdateToolTipTextPreview(REFERENCE_TIME rtPos);
 
     void UpdateTime();

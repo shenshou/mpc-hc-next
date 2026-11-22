@@ -22,6 +22,10 @@ BEGIN_MESSAGE_MAP(CModernZOverlay, CWnd)
     ON_WM_MOUSEMOVE()
     ON_WM_MOUSELEAVE()
     ON_WM_LBUTTONDOWN()
+    ON_WM_LBUTTONDBLCLK()
+    ON_WM_MBUTTONDOWN()
+    ON_WM_XBUTTONDOWN()
+    ON_WM_XBUTTONDBLCLK()
     ON_WM_LBUTTONUP()
     ON_WM_RBUTTONUP()
     ON_WM_MOUSEWHEEL()
@@ -588,6 +592,34 @@ void CModernZOverlay::OnLButtonDown(UINT nFlags, CPoint point)
             Render();
         }
     }
+}
+
+void CModernZOverlay::OnLButtonDblClk(UINT nFlags, CPoint point)
+{
+    OnLButtonDown(nFlags, point);
+}
+
+void CModernZOverlay::OnMButtonDown(UINT nFlags, CPoint point)
+{
+    UNREFERENCED_PARAMETER(nFlags);
+    if (m_seekHitRect.PtInRect(point)) {
+        m_pSeekBar->ToggleOverlayPreview();
+    }
+}
+
+BOOL CModernZOverlay::OnXButtonDown(UINT nFlags, UINT nButton, CPoint point)
+{
+    UNREFERENCED_PARAMETER(nFlags);
+    if (m_seekHitRect.PtInRect(point)) {
+        m_pSeekBar->HandleOverlayXButton(nButton);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+BOOL CModernZOverlay::OnXButtonDblClk(UINT nFlags, UINT nButton, CPoint point)
+{
+    return OnXButtonDown(nFlags, nButton, point);
 }
 
 void CModernZOverlay::OnLButtonUp(UINT nFlags, CPoint point)

@@ -1449,6 +1449,35 @@ void CPlayerSeekBar::PreviewWindowShow(CPoint point) {
     }
 }
 
+void CPlayerSeekBar::ToggleOverlayPreview()
+{
+    if (m_pMainFrame->m_wndPreView && ::IsWindow(m_pMainFrame->m_wndPreView)) {
+        if (m_pMainFrame->m_bUseSeekPreview) {
+            if (m_pMainFrame->m_wndPreView.IsWindowVisible()) {
+                m_pMainFrame->PreviewWindowHide();
+            }
+            m_pMainFrame->m_bUseSeekPreview = false;
+        } else {
+            m_pMainFrame->m_bUseSeekPreview = (m_pMainFrame->m_previewGraph.m_pGB != nullptr);
+        }
+    }
+}
+
+void CPlayerSeekBar::HandleOverlayXButton(UINT nButton)
+{
+    if (DraggingThumb()) {
+        return;
+    }
+    switch (nButton) {
+        case XBUTTON1:
+            SendMessage(WM_COMMAND, ID_PLAY_SEEKBACKWARDMED);
+            break;
+        case XBUTTON2:
+            SendMessage(WM_COMMAND, ID_PLAY_SEEKFORWARDMED);
+            break;
+    }
+}
+
 void CPlayerSeekBar::PreviewWindowShowAtOverlay(REFERENCE_TIME rtPos, const CPoint& screenPoint)
 {
     if (!m_bHasDuration || !m_pMainFrame->CanPreviewUse()) {
