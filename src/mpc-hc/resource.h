@@ -445,8 +445,6 @@
 #define IDC_CUSTOMPRESET_STATS          22098
 #define IDC_CUSTOMPRESET_STATUSBAR      22099
 #define IDC_TIMEONSEEKBAR               22100
-#define IDC_AUTOHIDE_WINDOWED_CONTROLS  22106
-#define IDC_ROUNDED_WINDOW_CORNERS      22107
 #define IDC_MODERNZ_CONTROLS            22108
 #define IDC_CHECK9                      11088
 #define IDC_CHECK10                     11089
