@@ -118,8 +118,37 @@ bool CModernZOverlay::SetBounds(const CRect& videoRect)
     }
 
     const int height = m_pMainFrame->m_dpi.ScaleY(76);
+    int requiredButtonWidth = 0;
+    bool haveButton = false;
+    for (int i = 0; i < m_pToolBar->GetOverlayButtonCount(); ++i) {
+        TBBUTTON button = {};
+        if (!m_pToolBar->GetOverlayButton(i, button) || button.idCommand == ID_VOLUME_MUTE) {
+            continue;
+        }
+
+        CRect nativeRect;
+        const int nativeWidth = m_pToolBar->GetOverlayButtonRect(i, nativeRect) ? nativeRect.Width() : 0;
+        if (button.fsStyle & TBSTYLE_SEP) {
+            if (haveButton) {
+                requiredButtonWidth += std::clamp(nativeWidth,
+                                                  m_pMainFrame->m_dpi.ScaleX(5),
+                                                  m_pMainFrame->m_dpi.ScaleX(18));
+            }
+        } else {
+            requiredButtonWidth += std::clamp(nativeWidth,
+                                              m_pMainFrame->m_dpi.ScaleX(28),
+                                              m_pMainFrame->m_dpi.ScaleX(42));
+            haveButton = true;
+        }
+    }
+
+    // Keep the button row clear of the fixed-width volume control. If the user's
+    // customized toolbar cannot fit, fall back to the native controls instead
+    // of allowing the overlay buttons to overlap the volume slider.
+    const int requiredVideoWidth = std::max(m_pMainFrame->m_dpi.ScaleX(260),
+                                            requiredButtonWidth + m_pMainFrame->m_dpi.ScaleX(166));
     if (videoRect.Height() <= m_pMainFrame->m_dpi.ScaleY(68)
-            || videoRect.Width() <= m_pMainFrame->m_dpi.ScaleX(260)) {
+            || videoRect.Width() <= requiredVideoWidth) {
         m_available = false;
         m_screenRect.SetRectEmpty();
         HideOverlay();
