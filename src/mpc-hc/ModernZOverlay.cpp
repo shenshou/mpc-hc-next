@@ -170,6 +170,8 @@ bool CModernZOverlay::SetBounds(const CRect& videoRect)
     m_available = true;
     if (!m_autoHide) {
         ShowOverlay();
+    } else if (IsWindowVisible()) {
+        StartHideTimer();
     }
     return true;
 }
@@ -277,6 +279,7 @@ void CModernZOverlay::HideOverlay()
 
 void CModernZOverlay::StartHideTimer()
 {
+    KillTimer(TIMER_HIDE);
     if (::IsWindow(m_hWnd)) {
         GetWindowRect(&m_screenRect);
     }
