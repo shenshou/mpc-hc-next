@@ -820,7 +820,7 @@ void CPlayerSeekBar::UpdateOverlayDrag(REFERENCE_TIME rtPos)
     CheckScrollDistance(CPoint(0, 0), std::min(5000000LL, m_rtStop / 30), 150LL);
 }
 
-void CPlayerSeekBar::DrawOverlay(CDC& dc, const CRect& bounds) const
+void CPlayerSeekBar::DrawOverlay(CDC& dc, const CRect& bounds)
 {
     if (bounds.IsRectEmpty()) {
         return;
