@@ -221,12 +221,23 @@ void CVolumeCtrl::OnNMCustomdraw(NMHDR* pNMHDR, LRESULT* pResult)
                         dpiWindow.Override(GetSafeHwnd());
 
                         CRect r(pNMCD->rc);
-                        r.DeflateRect(0, dpiWindow.ScaleFloorY(6), 0, dpiWindow.ScaleFloorY(6));
-                        dc.FillSolidRect(r, CMPCTheme::ScrollBGColor);
-                        CBrush fb;
-                        fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
-                        dc.FrameRect(r, &fb);
-                        fb.DeleteObject();
+                        if (bModernZ) {
+                            const int trackHeight = std::max<LONG>(2, dpiWindow.ScaleY(4));
+                            r.top = r.CenterPoint().y - trackHeight / 2;
+                            r.bottom = r.top + trackHeight;
+                            CRgn region;
+                            if (region.CreateRoundRectRgn(r.left, r.top, r.right, r.bottom, r.Height(), r.Height())) {
+                                CBrush brush(trackColor);
+                                dc.FillRgn(&region, &brush);
+                            }
+                        } else {
+                            r.DeflateRect(0, dpiWindow.ScaleFloorY(6), 0, dpiWindow.ScaleFloorY(6));
+                            dc.FillSolidRect(r, trackColor);
+                            CBrush fb;
+                            fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
+                            dc.FrameRect(r, &fb);
+                            fb.DeleteObject();
+                        }
                     } else {
                         CPen shadow;
                         CPen light;
@@ -255,17 +266,27 @@ void CVolumeCtrl::OnNMCustomdraw(NMHDR* pNMHDR, LRESULT* pResult)
                     COLORREF shadow = GetSysColor(COLOR_3DSHADOW);
                     COLORREF light = GetSysColor(COLOR_3DHILIGHT);
                     if (usetheme) {
-                        CBrush fb;
-                        if (m_bDrag) {
-                            dc.FillSolidRect(r, CMPCTheme::ScrollThumbDragColor);
-                        } else if (m_bHover) {
-                            dc.FillSolidRect(r, CMPCTheme::ScrollThumbHoverColor);
+                        const COLORREF thumbColor = m_bDrag ? thumbColorDrag
+                                                   : m_bHover ? thumbColorHover
+                                                              : thumbColorDefault;
+                        if (bModernZ) {
+                            const int diameter = std::min(r.Width(), r.Height());
+                            CRect circle(0, 0, diameter, diameter);
+                            circle.MoveToXY(r.CenterPoint().x - diameter / 2, r.CenterPoint().y - diameter / 2);
+                            CBrush brush(thumbColor);
+                            CPen pen(PS_NULL, 0, thumbColor);
+                            CBrush* oldBrush = dc.SelectObject(&brush);
+                            CPen* oldPen = dc.SelectObject(&pen);
+                            dc.Ellipse(&circle);
+                            dc.SelectObject(oldPen);
+                            dc.SelectObject(oldBrush);
                         } else {
-                            dc.FillSolidRect(r, CMPCTheme::ScrollThumbColor);
+                            dc.FillSolidRect(r, thumbColor);
+                            CBrush fb;
+                            fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
+                            dc.FrameRect(r, &fb);
+                            fb.DeleteObject();
                         }
-                        fb.CreateSolidBrush(CMPCTheme::NoBorderColor);
-                        dc.FrameRect(r, &fb);
-                        fb.DeleteObject();
                     } else {
                         dc.Draw3dRect(&r, light, 0);
                         r.DeflateRect(0, 0, 1, 1);
