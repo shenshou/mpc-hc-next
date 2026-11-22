@@ -821,7 +821,7 @@ void CPlayerSeekBar::OnPaint()
         const bool bMpcThemeLoaded = AppIsThemeLoaded();
         const COLORREF backgroundColor = bMpcThemeLoaded ? CMPCTheme::ContentBGColor : RGB(32, 32, 32);
         const COLORREF trackColor = bMpcThemeLoaded ? CMPCTheme::ScrollBGColor : RGB(76, 76, 82);
-        const COLORREF progressColor = bMpcThemeLoaded ? CMPCTheme::ScrollProgressColor : RGB(230, 230, 235);
+        const COLORREF progressColor = bMpcThemeLoaded ? CMPCTheme::ScrollProgressColor : RGB(255, 149, 0);
         const COLORREF chapterColor = bMpcThemeLoaded ? CMPCTheme::SeekbarChapterColor : RGB(180, 180, 190);
         const COLORREF abColor = bMpcThemeLoaded ? CMPCTheme::SeekbarABColor : RGB(245, 165, 70);
         CRect clientRect;
