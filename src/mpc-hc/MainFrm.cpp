@@ -1819,10 +1819,14 @@ void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
 
 void CMainFrame::UpdatePlayerUIAppearance()
 {
-    m_wndSeekBar.Invalidate();
-    m_wndToolBar.Invalidate();
-    if (m_wndToolBar.m_volctrl.GetSafeHwnd()) {
-        m_wndToolBar.m_volctrl.Invalidate();
+    if (m_wndSeekBar.GetSafeHwnd()) {
+        m_wndSeekBar.Invalidate();
+    }
+    if (m_wndToolBar.GetSafeHwnd()) {
+        m_wndToolBar.Invalidate();
+        if (m_wndToolBar.m_volctrl.GetSafeHwnd()) {
+            m_wndToolBar.m_volctrl.Invalidate();
+        }
     }
 }
 
