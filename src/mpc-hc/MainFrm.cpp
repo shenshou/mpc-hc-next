@@ -1857,6 +1857,7 @@ void CMainFrame::UpdateModernZOverlay()
                            && ::IsWindow(m_pVideoWnd->GetSafeHwnd())
                            && ::IsWindow(m_wndSeekBar.GetSafeHwnd())
                            && ::IsWindow(m_wndToolBar.GetSafeHwnd())
+                           && ::IsWindow(m_wndToolBar.m_volctrl.GetSafeHwnd())
                            && !IsD3DFullScreenMode()
                            && !IsFullScreenMainFrameExclusiveMPCVR()
                            && !m_graph.m_pMVRC
