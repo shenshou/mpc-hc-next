@@ -941,11 +941,11 @@ void CPlayerToolBar::DispatchOverlayButton(UINT command, int buttonIndex, const 
         UNREFERENCED_PARAMETER(mouseButtonSource);
     };
 
-    if (rightClick && buttonIndex != rightButtonIndex) {
-        return;
-    }
-
     if (!rightClick) {
+        if (command == ID_AUDIOS || command == ID_SUBTITLES) {
+            showMenuAtOverlay(command, VK_LBUTTON);
+            return;
+        }
         if (command >= ID_CUSTOM_ACTION1 && command <= ID_CUSTOM_ACTION4) {
             const UINT customCommand = CustomToCMD(command, VK_LBUTTON);
             if (CmdIsMenu(customCommand)) {
