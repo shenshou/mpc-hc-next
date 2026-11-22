@@ -861,7 +861,8 @@ BOOL CModernZOverlay::OnMouseWheel(UINT nFlags, short zDelta, CPoint point)
 {
     UNREFERENCED_PARAMETER(nFlags);
     ScreenToClient(&point);
-    if (!m_volumeBounds.PtInRect(point)) {
+    // Match the native volume slider: wheel adjustment applies to the slider, not the mute button.
+    if (!m_volumeTrackRect.PtInRect(point)) {
         return FALSE;
     }
     if (zDelta > 0) {
