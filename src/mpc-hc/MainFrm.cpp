@@ -1819,6 +1819,7 @@ void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
 
 void CMainFrame::UpdatePlayerUIAppearance()
 {
+    m_controls.SetModernZControlsHidden(AfxGetAppSettings().bModernZControls);
     if (m_wndSeekBar.GetSafeHwnd()) {
         m_wndSeekBar.Invalidate();
     }
