@@ -1276,18 +1276,26 @@ void CPlayerSeekBar::PreviewWindowShow(CPoint point) {
         m_bIgnoreLastTooltipPoint = false;
         m_last_pointx_preview = point.x;
         if (m_pMainFrame->CanPreviewUse()) {
-            REFERENCE_TIME newpos = std::clamp(PositionFromClientPoint(point), 0LL, m_rtStop);
-            if (newpos != m_pos_preview) {
-                if (GetKeyState(VK_SHIFT) >= 0) {
-                    newpos = m_pMainFrame->GetClosestKeyFramePreview(newpos);
-                }
-            }
-            if (newpos != m_pos_preview || !m_pMainFrame->m_wndPreView.IsWindowVisible()) {
-                m_pos_preview = newpos;
-                UpdateToolTipTextPreview(m_pos_preview);
-                m_pMainFrame->PreviewWindowShow(m_pos_preview);
-            }
+            PreviewWindowShowAt(PositionFromClientPoint(point));
         }
+    }
+}
+
+void CPlayerSeekBar::PreviewWindowShowAt(REFERENCE_TIME rtPos)
+{
+    if (DraggingThumb() || !m_pMainFrame->CanPreviewUse()) {
+        return;
+    }
+
+    REFERENCE_TIME newpos = std::clamp(rtPos, 0LL, m_rtStop);
+    if (newpos != m_pos_preview && GetKeyState(VK_SHIFT) >= 0) {
+        newpos = m_pMainFrame->GetClosestKeyFramePreview(newpos);
+    }
+
+    if (newpos != m_pos_preview || !m_pMainFrame->m_wndPreView.IsWindowVisible()) {
+        m_pos_preview = newpos;
+        UpdateToolTipTextPreview(m_pos_preview);
+        m_pMainFrame->PreviewWindowShow(m_pos_preview);
     }
 }
 
