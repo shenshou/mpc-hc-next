@@ -84,6 +84,7 @@ private:
     bool m_autoHide = true;
     bool m_draggingSeek = false;
     bool m_draggingVolume = false;
+    bool m_pressedVolumeIcon = false;
     bool m_trackingMouseLeave = false;
     bool m_inMenu = false;
     bool m_hoveringSeek = false;

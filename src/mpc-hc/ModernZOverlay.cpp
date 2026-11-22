@@ -343,6 +343,7 @@ void CModernZOverlay::EndActiveDrag()
         m_draggingSeek = false;
     }
     m_draggingVolume = false;
+    m_pressedVolumeIcon = false;
     m_pressedButtonIndex = -1;
     m_rightPressedButtonIndex = -1;
     m_rightPressedVolume = false;
@@ -610,9 +611,8 @@ void CModernZOverlay::OnLButtonDown(UINT nFlags, CPoint point)
     }
 
     if (m_volumeIconRect.PtInRect(point) && m_volumeButtonIndex >= 0) {
-        CRect screenRect(m_volumeIconRect);
-        ClientToScreen(&screenRect);
-        m_pToolBar->DispatchOverlayButton(ID_VOLUME_MUTE, m_volumeButtonIndex, screenRect);
+        m_pressedVolumeIcon = true;
+        SetCapture();
         Render();
         return;
     }
@@ -672,6 +672,8 @@ void CModernZOverlay::OnLButtonUp(UINT nFlags, CPoint point)
     }
 
     const int releasedIndex = HitTestButton(point);
+    const bool pressedVolumeIcon = m_pressedVolumeIcon;
+    const bool releasedVolumeIcon = m_volumeIconRect.PtInRect(point);
     const UINT command = m_pressedCommand;
     const int pressedIndex = m_pressedButtonIndex;
     const CRect buttonRect = m_pressedButtonRect;
@@ -680,7 +682,11 @@ void CModernZOverlay::OnLButtonUp(UINT nFlags, CPoint point)
         ReleaseCapture();
     }
 
-    if (pressedIndex >= 0 && releasedIndex == pressedIndex && command != 0) {
+    if (pressedVolumeIcon && releasedVolumeIcon && m_volumeButtonIndex >= 0) {
+        CRect screenRect(m_volumeIconRect);
+        ClientToScreen(&screenRect);
+        m_pToolBar->DispatchOverlayButton(ID_VOLUME_MUTE, m_volumeButtonIndex, screenRect);
+    } else if (pressedIndex >= 0 && releasedIndex == pressedIndex && command != 0) {
         CRect screenRect(buttonRect);
         ClientToScreen(&screenRect);
         m_inMenu = true;
