@@ -672,6 +672,7 @@ void CPlayerToolBar::SetMute(bool fMute) {
     bi.iImage = VOLUMEBUTTON_SVG_INDEX + (fMute ? 1:0);
     tb.SetButtonInfo(ID_VOLUME_MUTE, &bi);
     AfxGetAppSettings().fMute = fMute;
+    m_pMainFrame->RefreshModernZOverlay();
 }
 
 void CPlayerToolBar::ToggleButton(int buttonID, bool isActive, std::optional<bool> &lastBool) {
@@ -738,6 +739,7 @@ int CPlayerToolBar::GetMinWidth() const
 void CPlayerToolBar::SetVolume(int volume)
 {
     m_volctrl.SetPosInternal(volume);
+    m_pMainFrame->RefreshModernZOverlay();
 }
 
 void CPlayerToolBar::EventCallback(MpcEvent ev)
@@ -1213,6 +1215,7 @@ void CPlayerToolBar::SetPlayPauseActiveButton(UINT activeButtonId)
     // Set visibility states
     ctrl.HideButton(showButton, FALSE);  // Show
     ctrl.HideButton(hideButton, TRUE);   // Hide
+    m_pMainFrame->RefreshModernZOverlay();
 }
 
 inline bool IsPlayOrPause(UINT id) {
@@ -1307,7 +1310,11 @@ void CPlayerToolBar::OnUpdateCustomAction(CCmdUI* pCmdUI) {
         || pCmdUI->m_nID == ID_CUSTOM_ACTION3 && (s.nToolbarAction3 || s.nToolbarRightAction3)
         || pCmdUI->m_nID == ID_CUSTOM_ACTION4 && (s.nToolbarAction4 || s.nToolbarRightAction4);
 
+    const bool wasEnabled = (GetToolBarCtrl().GetState(pCmdUI->m_nID) & TBSTATE_ENABLED) != 0;
     pCmdUI->Enable(enable);
+    if (wasEnabled != enable) {
+        m_pMainFrame->RefreshModernZOverlay();
+    }
 }
 
 bool CPlayerToolBar::CmdIsMenu(int cmd) {
@@ -1357,6 +1364,7 @@ BOOL CPlayerToolBar::OnCustomAction(UINT nID) {
 BOOL CPlayerToolBar::OnVolumeUp(UINT nID)
 {
     m_volctrl.IncreaseVolume();
+    m_pMainFrame->RefreshModernZOverlay();
     // SetPosInternal posts the canonical WM_HSCROLL notification.
     return TRUE;
 }
@@ -1364,6 +1372,7 @@ BOOL CPlayerToolBar::OnVolumeUp(UINT nID)
 BOOL CPlayerToolBar::OnVolumeDown(UINT nID)
 {
     m_volctrl.DecreaseVolume();
+    m_pMainFrame->RefreshModernZOverlay();
     // SetPosInternal posts the canonical WM_HSCROLL notification.
     return TRUE;
 }
