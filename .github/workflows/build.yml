@@ -9,6 +9,8 @@ on:
         default: '0.2'
         type: string
   push:
+    branches:
+      - 'feature/modernz-ui-rounded-corners'
     tags:
       - 'MPC-HC-Next.*'
 
