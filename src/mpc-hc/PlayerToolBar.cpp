@@ -687,6 +687,7 @@ void CPlayerToolBar::ToggleButton(int buttonID, bool isActive, std::optional<boo
         }
         tb.SetButtonInfo(buttonID, &bi);
         lastBool = isActive;
+        m_pMainFrame->RefreshModernZOverlay();
     }
 }
 

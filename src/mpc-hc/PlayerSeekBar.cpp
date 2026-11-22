@@ -685,6 +685,7 @@ void CPlayerSeekBar::Enable(bool bEnable)
     if (bEnable != m_bEnabled) {
         m_bEnabled = bEnable;
         Invalidate();
+        m_pMainFrame->RefreshModernZOverlay();
     }
 }
 
@@ -732,6 +733,7 @@ void CPlayerSeekBar::SetRange(REFERENCE_TIME rtStart, REFERENCE_TIME rtStop)
             Invalidate();
         }
     }
+    m_pMainFrame->RefreshModernZOverlay();
 }
 
 REFERENCE_TIME CPlayerSeekBar::GetPos() const
@@ -1484,6 +1486,9 @@ void CPlayerSeekBar::ShowOverlayTooltip(REFERENCE_TIME rtPos, const CPoint& scre
         return;
     }
 
+    GenerateToolTipText(rtPos);
+    m_ti.lpszText = (LPTSTR)(LPCTSTR)m_tooltipText;
+    HideToolTip();
     GenerateToolTipText(rtPos);
     m_ti.lpszText = (LPTSTR)(LPCTSTR)m_tooltipText;
     m_tooltip.SetToolInfo(&m_ti);
