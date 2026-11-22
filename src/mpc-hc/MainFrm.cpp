@@ -1819,7 +1819,7 @@ void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
 
 void CMainFrame::UpdatePlayerUIAppearance()
 {
-    m_controls.SetModernZControlsHidden(AfxGetAppSettings().bModernZControls);
+    // The overlay integration will activate the runtime mask once it is ready.
     if (m_wndSeekBar.GetSafeHwnd()) {
         m_wndSeekBar.Invalidate();
     }
