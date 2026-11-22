@@ -820,6 +820,110 @@ void CPlayerSeekBar::UpdateOverlayDrag(REFERENCE_TIME rtPos)
     CheckScrollDistance(CPoint(0, 0), std::min(5000000LL, m_rtStop / 30), 150LL);
 }
 
+void CPlayerSeekBar::DrawOverlay(CDC& dc, const CRect& bounds) const
+{
+    if (bounds.IsRectEmpty()) {
+        return;
+    }
+
+    const bool bMpcThemeLoaded = AppIsThemeLoaded();
+    const COLORREF trackColor = bMpcThemeLoaded ? CMPCTheme::ScrollBGColor : RGB(76, 76, 82);
+    const COLORREF progressColor = bMpcThemeLoaded ? CMPCTheme::ScrollProgressColor : RGB(255, 149, 0);
+    const COLORREF chapterColor = bMpcThemeLoaded ? CMPCTheme::SeekbarChapterColor : RGB(180, 180, 190);
+    const COLORREF abColor = bMpcThemeLoaded ? CMPCTheme::SeekbarABColor : RGB(245, 165, 70);
+
+    const int trackHeight = std::max<LONG>(2, m_pMainFrame->m_dpi.ScaleY(4));
+    CRect track(bounds);
+    track.top = bounds.CenterPoint().y - trackHeight / 2;
+    track.bottom = track.top + trackHeight;
+
+    auto fillRoundedRect = [&](const CRect& rect, COLORREF color) {
+        if (rect.IsRectEmpty()) {
+            return;
+        }
+        CRgn region;
+        if (region.CreateRoundRectRgn(rect.left, rect.top, rect.right, rect.bottom,
+                                      rect.Height(), rect.Height())) {
+            CBrush brush(color);
+            dc.FillRgn(&region, &brush);
+        }
+    };
+    fillRoundedRect(track, trackColor);
+
+    if (!m_bHasDuration || m_rtStart >= m_rtStop) {
+        return;
+    }
+
+    const REFERENCE_TIME duration = m_rtStop - m_rtStart;
+    auto pointFromPosition = [&](REFERENCE_TIME position) {
+        const REFERENCE_TIME clamped = std::clamp(position, m_rtStart, m_rtStop);
+        return bounds.left + static_cast<int>((static_cast<__int64>(bounds.Width())
+                                               * (clamped - m_rtStart)) / duration);
+    };
+
+    const int seekPos = pointFromPosition(m_rtPosDraw);
+    if (seekPos > bounds.left) {
+        CRect progress(track);
+        progress.right = std::min(track.right, seekPos);
+        fillRoundedRect(progress, progressColor);
+    }
+
+    auto drawMarker = [&](REFERENCE_TIME position, COLORREF color) {
+        const int x = pointFromPosition(position);
+        const int markerWidth = std::max<LONG>(1, m_pMainFrame->m_dpi.ScaleX(1));
+        const int markerHeight = m_pMainFrame->m_dpi.ScaleY(8);
+        CRect marker(x, track.CenterPoint().y - markerHeight / 2,
+                     x + markerWidth, track.CenterPoint().y + (markerHeight + 1) / 2);
+        dc.FillSolidRect(&marker, color);
+    };
+
+    REFERENCE_TIME aPos = 0, bPos = 0;
+    if (m_pMainFrame->CheckABRepeat(aPos, bPos)) {
+        if (aPos) {
+            drawMarker(aPos, abColor);
+        }
+        if (bPos) {
+            drawMarker(bPos, abColor);
+        }
+    }
+
+    {
+        CAutoLock lock(&m_csChapterBag);
+        if (m_pChapterBag) {
+            for (DWORD i = 0; i < m_pChapterBag->ChapGetCount(); i++) {
+                REFERENCE_TIME chapterPosition = 0;
+                if (SUCCEEDED(m_pChapterBag->ChapGet(i, &chapterPosition, nullptr))) {
+                    drawMarker(chapterPosition, chapterColor);
+                }
+            }
+        }
+    }
+
+    if (m_bEnabled) {
+        const int thumbSize = std::max<LONG>(8, m_pMainFrame->m_dpi.ScaleY(12));
+        CRect thumb(0, 0, thumbSize, thumbSize);
+        thumb.MoveToXY(seekPos - thumbSize / 2, bounds.CenterPoint().y - thumbSize / 2);
+        CBrush brush(progressColor);
+        CPen pen(PS_SOLID, 1, progressColor);
+        CBrush* oldBrush = dc.SelectObject(&brush);
+        CPen* oldPen = dc.SelectObject(&pen);
+        dc.Ellipse(&thumb);
+        dc.SelectObject(oldPen);
+        dc.SelectObject(oldBrush);
+    }
+}
+
+REFERENCE_TIME CPlayerSeekBar::PositionFromOverlayPoint(int x, const CRect& bounds) const
+{
+    if (!m_bHasDuration || m_rtStart >= m_rtStop || bounds.Width() <= 0) {
+        return m_rtStart;
+    }
+
+    const int clampedX = std::clamp(x, bounds.left, bounds.right);
+    return m_rtStart + static_cast<REFERENCE_TIME>(
+        (static_cast<__int64>(clampedX - bounds.left) * (m_rtStop - m_rtStart)) / bounds.Width());
+}
+
 void CPlayerSeekBar::EndOverlayDrag()
 {
     if (!m_bDraggingThumb) {
