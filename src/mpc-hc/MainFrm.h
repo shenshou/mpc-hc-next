@@ -1200,6 +1200,7 @@ public:
     void UpdateModernZOverlay();
     void NotifyModernZOverlayMouseMove(const CPoint& screenPoint);
     void NotifyModernZOverlayMouseLeave();
+    void RefreshModernZOverlay();
 
     UINT GetNormalPresetCS() const;
     void ApplyTimeOnSeekBarChange();

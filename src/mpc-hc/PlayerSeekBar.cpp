@@ -232,6 +232,7 @@ void CPlayerSeekBar::SyncThumbToVideo(REFERENCE_TIME rtPos, REFERENCE_TIME rtPos
             VERIFY(S_OK == m_pMainFrame->m_api.m_pTaskbarList->SetProgressValue(m_pMainFrame->m_hWnd, std::max(m_rtPos, 1ll), m_rtStop));
         }
     }
+    m_pMainFrame->RefreshModernZOverlay();
 }
 
 void CPlayerSeekBar::CreateThumb(bool bEnabled, CDC& parentDC)

@@ -1896,6 +1896,13 @@ void CMainFrame::NotifyModernZOverlayMouseLeave()
     }
 }
 
+void CMainFrame::RefreshModernZOverlay()
+{
+    if (m_pModernZOverlay) {
+        m_pModernZOverlay->Refresh();
+    }
+}
+
 void CMainFrame::OnSize(UINT nType, int cx, int cy)
 {
     if (nType == SIZE_MINIMIZED) {
@@ -3848,6 +3855,7 @@ void CMainFrame::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
     }
 
     __super::OnHScroll(nSBCode, nPos, pScrollBar);
+    RefreshModernZOverlay();
 }
 
 void CMainFrame::RestoreFocus() {
@@ -16218,6 +16226,7 @@ void CMainFrame::UpdateControlState(UpdateControlTarget target)
         default:
             ASSERT(FALSE);
     }
+    RefreshModernZOverlay();
 }
 
 void CMainFrame::ReloadMenus() {

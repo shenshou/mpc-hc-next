@@ -183,9 +183,6 @@ void CModernZOverlay::ShowOverlay()
 
     ShowWindow(SW_SHOWNOACTIVATE);
     SetWindowPos(&wndTop, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-    if (m_autoHide) {
-        StartHideTimer();
-    }
 }
 
 void CModernZOverlay::HideOverlay()
@@ -198,9 +195,14 @@ void CModernZOverlay::HideOverlay()
 
 void CModernZOverlay::StartHideTimer()
 {
-    if (m_autoHide && !m_draggingSeek && !m_draggingVolume && !m_inMenu && IsWindowVisible()) {
-        SetTimer(TIMER_HIDE, HIDE_DELAY_MS, nullptr);
+    if (!m_autoHide || m_draggingSeek || m_draggingVolume || m_inMenu || !IsWindowVisible()) {
+        return;
     }
+    CPoint cursor;
+    if (GetCursorPos(&cursor) && m_screenRect.PtInRect(cursor)) {
+        return;
+    }
+    SetTimer(TIMER_HIDE, HIDE_DELAY_MS, nullptr);
 }
 
 int CModernZOverlay::HitTestButton(const CPoint& point) const
@@ -418,9 +420,6 @@ void CModernZOverlay::OnMouseMove(UINT nFlags, CPoint point)
         }
     }
 
-    if (m_autoHide && !m_draggingSeek && !m_draggingVolume && !m_inMenu) {
-        StartHideTimer();
-    }
 }
 
 void CModernZOverlay::OnMouseLeave()
