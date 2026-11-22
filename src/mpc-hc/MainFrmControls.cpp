@@ -142,10 +142,7 @@ CMainFrameControls::CMainFrameControls(CMainFrame* pMainFrame)
     , m_bModernZControlsHidden(false)
     , m_bDelayShowNotLoaded(false)
 {
-    // The visibility state is constructed before the frame creates its control bars.
-    // Start from the effective selection so a persisted ModernZ setting is reflected
-    // in the first layout pass, without changing the user's saved nCS configuration.
-    // Native controls remain visible until the independent overlay is implemented.
+    // Keep native controls visible until the independent ModernZ overlay is ready.
 }
 
 CMainFrameControls::~CMainFrameControls()
