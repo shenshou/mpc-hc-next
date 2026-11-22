@@ -27,6 +27,7 @@ BEGIN_MESSAGE_MAP(CModernZOverlay, CWnd)
     ON_WM_XBUTTONDOWN()
     ON_WM_XBUTTONDBLCLK()
     ON_WM_LBUTTONUP()
+    ON_WM_RBUTTONDOWN()
     ON_WM_RBUTTONUP()
     ON_WM_MOUSEWHEEL()
     ON_WM_TIMER()
@@ -343,6 +344,8 @@ void CModernZOverlay::EndActiveDrag()
     }
     m_draggingVolume = false;
     m_pressedButtonIndex = -1;
+    m_rightPressedButtonIndex = -1;
+    m_rightPressedVolume = false;
     m_pressedCommand = 0;
     m_pressedButtonRect.SetRectEmpty();
 }
@@ -689,35 +692,48 @@ void CModernZOverlay::OnLButtonUp(UINT nFlags, CPoint point)
     StartHideTimer();
 }
 
+void CModernZOverlay::OnRButtonDown(UINT nFlags, CPoint point)
+{
+    UNREFERENCED_PARAMETER(nFlags);
+    m_rightPressedVolume = m_volumeIconRect.PtInRect(point) && m_volumeButtonIndex >= 0;
+    m_rightPressedButtonIndex = m_rightPressedVolume ? -1 : HitTestButton(point);
+    if (m_rightPressedVolume || m_rightPressedButtonIndex >= 0) {
+        SetCapture();
+    }
+}
+
 void CModernZOverlay::OnRButtonUp(UINT nFlags, CPoint point)
 {
     UNREFERENCED_PARAMETER(nFlags);
-    if (m_volumeIconRect.PtInRect(point) && m_volumeButtonIndex >= 0) {
+    const bool pressedVolume = m_rightPressedVolume;
+    const int pressedIndex = m_rightPressedButtonIndex;
+    const bool releasedVolume = m_volumeIconRect.PtInRect(point) && m_volumeButtonIndex >= 0;
+    const int releasedIndex = HitTestButton(point);
+    m_rightPressedVolume = false;
+    m_rightPressedButtonIndex = -1;
+
+    if (GetCapture() == this) {
+        ReleaseCapture();
+    }
+
+    if (pressedVolume && releasedVolume) {
         CRect screenRect(m_volumeIconRect);
         ClientToScreen(&screenRect);
         m_inMenu = true;
         m_pToolBar->DispatchOverlayButton(ID_VOLUME_MUTE, m_volumeButtonIndex, screenRect, true);
         m_inMenu = false;
-        StartHideTimer();
-        return;
+    } else if (pressedIndex >= 0 && releasedIndex == pressedIndex) {
+        const auto it = std::find_if(m_buttonHits.begin(), m_buttonHits.end(),
+                                     [&](const ButtonHit& hit) { return hit.index == pressedIndex; });
+        if (it != m_buttonHits.end()) {
+            CRect screenRect(it->rect);
+            ClientToScreen(&screenRect);
+            m_inMenu = true;
+            m_pToolBar->DispatchOverlayButton(it->command, pressedIndex, screenRect, true);
+            m_inMenu = false;
+        }
     }
 
-    const int index = HitTestButton(point);
-    if (index < 0) {
-        return;
-    }
-
-    const auto it = std::find_if(m_buttonHits.begin(), m_buttonHits.end(),
-                                 [&](const ButtonHit& hit) { return hit.index == index; });
-    if (it == m_buttonHits.end()) {
-        return;
-    }
-
-    CRect screenRect(it->rect);
-    ClientToScreen(&screenRect);
-    m_inMenu = true;
-    m_pToolBar->DispatchOverlayButton(it->command, index, screenRect, true);
-    m_inMenu = false;
     Render();
     StartHideTimer();
 }

@@ -38,6 +38,7 @@ protected:
     afx_msg BOOL OnXButtonDown(UINT nFlags, UINT nButton, CPoint point);
     afx_msg BOOL OnXButtonDblClk(UINT nFlags, UINT nButton, CPoint point);
     afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+    afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
     afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
     afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint point);
     afx_msg void OnTimer(UINT_PTR nIDEvent);
@@ -75,6 +76,8 @@ private:
     int m_volumeButtonIndex = -1;
     int m_hotButtonIndex = -1;
     int m_pressedButtonIndex = -1;
+    int m_rightPressedButtonIndex = -1;
+    bool m_rightPressedVolume = false;
     UINT m_pressedCommand = 0;
     CRect m_pressedButtonRect;
 
