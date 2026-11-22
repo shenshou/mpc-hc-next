@@ -695,7 +695,13 @@ void CModernZOverlay::OnLButtonDown(UINT nFlags, CPoint point)
             m_pressedButtonRect = it->rect;
             SetCapture();
             Render();
+            return;
         }
+    }
+
+    if (!m_pMainFrame->m_fFullScreen) {
+        ClientToScreen(&point);
+        m_pMainFrame->PostMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(point.x, point.y));
     }
 }
 
