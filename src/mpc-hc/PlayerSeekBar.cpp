@@ -799,6 +799,7 @@ bool CPlayerSeekBar::BeginOverlayDrag()
     m_lastDragSeekTickCount = GetTickCount64();
     m_rtHoverPos = m_rtPosDraw;
     m_bDraggingThumb = true;
+    m_bOverlayDragFirstUpdate = true;
     return true;
 }
 
@@ -820,7 +821,12 @@ void CPlayerSeekBar::UpdateOverlayDrag(REFERENCE_TIME rtPos)
     }
 
     SyncThumbToVideo(rtSeekPos, rtPosDraw);
-    CheckScrollDistance(CPoint(0, 0), std::min(5000000LL, m_rtStop / 30), 150LL);
+    if (m_bOverlayDragFirstUpdate) {
+        m_bOverlayDragFirstUpdate = false;
+        CheckScrollDistance(CPoint(0, 0), 0LL, 0ULL);
+    } else {
+        CheckScrollDistance(CPoint(0, 0), std::min(5000000LL, m_rtStop / 30), 150LL);
+    }
 }
 
 void CPlayerSeekBar::DrawOverlay(CDC& dc, const CRect& bounds)
@@ -933,6 +939,7 @@ void CPlayerSeekBar::EndOverlayDrag()
     }
 
     m_bDraggingThumb = false;
+    m_bOverlayDragFirstUpdate = false;
     CheckScrollDistance(CPoint(0, 0), std::min(2500000LL, m_rtStop / 100), 0LL);
     pauseAfterFirstScroll = false;
     if (pausedForScrolling) {
