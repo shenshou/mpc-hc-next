@@ -969,8 +969,6 @@ public:
     HWND            hMasterWnd;
 
     bool            bHideWindowedControls;
-    bool            bAutoHideWindowedControls;
-    bool            bRoundVideoWindowCorners;
     bool            bModernZControls;
 
     int             nJpegQuality;
