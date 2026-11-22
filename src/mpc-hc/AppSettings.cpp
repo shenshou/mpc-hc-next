@@ -257,8 +257,6 @@ CAppSettings::CAppSettings()
     , fEnableEDLEditor(false)
     , hMasterWnd(nullptr)
     , bHideWindowedControls(false)
-    , bAutoHideWindowedControls(false)
-    , bRoundVideoWindowCorners(false)
     , bModernZControls(false)
     , nJpegQuality(90)
     , bEnableCoverArt(true)
@@ -1037,8 +1035,6 @@ void CAppSettings::SaveSettings(bool write_full_history /* = false */)
     VERIFY(pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_FULLSCREEN_DOCKED_PANELS, bHideFullscreenDockedPanels));
     VERIFY(pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_WINDOWED_CONTROLS, bHideWindowedControls));
     CString settingsSection = ResStr(IDS_R_SETTINGS);
-    VERIFY(pApp->WriteProfileInt(settingsSection, _T("AutoHideWindowedControls"), bAutoHideWindowedControls));
-    VERIFY(pApp->WriteProfileInt(settingsSection, _T("RoundVideoWindowCorners"), bRoundVideoWindowCorners));
     VERIFY(pApp->WriteProfileInt(settingsSection, _T("ModernZControls"), bModernZControls));
 
     VERIFY(pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_WINDOWED_MOUSE_POINTER, bHideWindowedMousePointer));
@@ -1792,8 +1788,6 @@ void CAppSettings::LoadSettings()
     bHideFullscreenDockedPanels = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_FULLSCREEN_DOCKED_PANELS, TRUE);
     bHideWindowedControls = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_WINDOWED_CONTROLS, FALSE);
     CString settingsSection = ResStr(IDS_R_SETTINGS);
-    bAutoHideWindowedControls = !!pApp->GetProfileInt(settingsSection, _T("AutoHideWindowedControls"), FALSE);
-    bRoundVideoWindowCorners = !!pApp->GetProfileInt(settingsSection, _T("RoundVideoWindowCorners"), FALSE);
     bModernZControls = !!pApp->GetProfileInt(settingsSection, _T("ModernZControls"), FALSE);
 
     bHideWindowedMousePointer = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_HIDE_WINDOWED_MOUSE_POINTER, TRUE);
