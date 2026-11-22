@@ -140,6 +140,9 @@ void CModernZOverlay::SetAutoHide(bool autoHide)
 
 void CModernZOverlay::NotifyVideoMouseMove(const CPoint& screenPoint)
 {
+    if (::IsWindow(m_hWnd)) {
+        GetWindowRect(&m_screenRect);
+    }
     if (!m_autoHide || !m_available || m_screenRect.IsRectEmpty()) {
         return;
     }
@@ -170,6 +173,9 @@ bool CModernZOverlay::IsReady() const
 
 void CModernZOverlay::ShowOverlay()
 {
+    if (::IsWindow(m_hWnd)) {
+        GetWindowRect(&m_screenRect);
+    }
     if (!m_available || !::IsWindow(m_hWnd) || m_videoRect.IsRectEmpty()) {
         return;
     }
@@ -197,6 +203,9 @@ void CModernZOverlay::HideOverlay()
 
 void CModernZOverlay::StartHideTimer()
 {
+    if (::IsWindow(m_hWnd)) {
+        GetWindowRect(&m_screenRect);
+    }
     if (!m_autoHide || m_draggingSeek || m_draggingVolume || m_inMenu || !IsWindowVisible()) {
         return;
     }
