@@ -104,6 +104,9 @@ bool CModernZOverlay::Bind(CWnd* pVideoParent)
     }
     if (wasVisible || !m_autoHide) {
         ShowOverlay();
+        if (m_autoHide) {
+            StartHideTimer();
+        }
     }
     return true;
 }
