@@ -54,8 +54,6 @@ CPPageTheme::CPPageTheme()
     , m_fSnapToDesktopEdges(FALSE)
     , m_fLimitWindowProportions(TRUE)
     , m_bHideWindowedControls(FALSE)
-    , m_bAutoHideWindowedControls(FALSE)
-    , m_bRoundVideoWindowCorners(FALSE)
     , m_bModernZControls(FALSE)
     , m_bUseEnhancedTaskBar(TRUE)
     , m_bUseSMTC(FALSE)
@@ -116,8 +114,6 @@ void CPPageTheme::DoDataExchange(CDataExchange* pDX)
     DDX_Check(pDX, IDC_CHECK7, m_fLimitWindowProportions);
     DDX_Check(pDX, IDC_CHECK9, m_fSnapToDesktopEdges);
     DDX_Check(pDX, IDC_CHECK10, m_bHideWindowedControls);
-    DDX_Check(pDX, IDC_AUTOHIDE_WINDOWED_CONTROLS, m_bAutoHideWindowedControls);
-    DDX_Check(pDX, IDC_ROUNDED_WINDOW_CORNERS, m_bRoundVideoWindowCorners);
     DDX_Check(pDX, IDC_MODERNZ_CONTROLS, m_bModernZControls);
     DDX_Check(pDX, IDC_CHECK_ENHANCED_TASKBAR, m_bUseEnhancedTaskBar);
     DDX_Check(pDX, IDC_CHECK11, m_bUseSMTC);
@@ -135,9 +131,7 @@ BEGIN_MESSAGE_MAP(CPPageTheme, CMPCThemePPageBase)
     ON_BN_CLICKED(IDC_SEEK_PREVIEW, OnPreviewClicked)
     ON_BN_CLICKED(IDC_CHECK14, OnTimeClicked)
     ON_BN_CLICKED(IDC_CHECK1, OnThemeClicked)
-    ON_BN_CLICKED(IDC_AUTOHIDE_WINDOWED_CONTROLS, OnWindowPlayerUIOptionClicked)
-    ON_BN_CLICKED(IDC_ROUNDED_WINDOW_CORNERS, OnWindowPlayerUIOptionClicked)
-    ON_BN_CLICKED(IDC_MODERNZ_CONTROLS, OnWindowPlayerUIOptionClicked)
+    ON_BN_CLICKED(IDC_MODERNZ_CONTROLS, OnModernZControlsClicked)
     ON_NOTIFY_EX(TTN_NEEDTEXT, 0, OnToolTipNotify)
     ON_CBN_SELCHANGE(IDC_COMBO5, OnChngOSDCombo)
     ON_CBN_SELCHANGE(IDC_COMBO6, OnChngOSDCombo)
@@ -254,8 +248,6 @@ BOOL CPPageTheme::OnInitDialog()
     m_fSnapToDesktopEdges = s.fSnapToDesktopEdges;
     m_fLimitWindowProportions = s.fLimitWindowProportions;
     m_bHideWindowedControls = s.bHideWindowedControls;
-    m_bAutoHideWindowedControls = s.bAutoHideWindowedControls;
-    m_bRoundVideoWindowCorners = s.bRoundVideoWindowCorners;
     m_bModernZControls = s.bModernZControls;
     m_bUseEnhancedTaskBar = s.bUseEnhancedTaskBar;
     m_bUseSMTC = s.bUseSMTC;
@@ -355,11 +347,8 @@ BOOL CPPageTheme::OnApply()
     s.fSnapToDesktopEdges = m_fSnapToDesktopEdges;
     s.fLimitWindowProportions = m_fLimitWindowProportions;
     s.bHideWindowedControls = m_bHideWindowedControls;
-    s.bAutoHideWindowedControls = !!m_bAutoHideWindowedControls;
-    s.bRoundVideoWindowCorners = !!m_bRoundVideoWindowCorners;
     s.bModernZControls = !!m_bModernZControls;
     if (CMainFrame* pMainFrame = AfxGetMainFrame()) {
-        pMainFrame->UpdateControlState(CMainFrame::UPDATE_CONTROLS_VISIBILITY);
         pMainFrame->UpdatePlayerUIAppearance();
     }
 
@@ -415,7 +404,7 @@ void CPPageTheme::OnTimeClicked() {
     SetModified();
 }
 
-void CPPageTheme::OnWindowPlayerUIOptionClicked()
+void CPPageTheme::OnModernZControlsClicked()
 {
     SetModified();
 }
