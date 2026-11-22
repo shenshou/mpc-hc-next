@@ -69,6 +69,7 @@ private:
     CRect m_videoRect;
     CRect m_screenRect;
     CRect m_seekHitRect;
+    CRect m_timeHitRect;
     CRect m_volumeBounds;
     CRect m_volumeIconRect;
     CRect m_volumeTrackRect;
@@ -81,6 +82,7 @@ private:
     int m_pressedButtonIndex = -1;
     int m_rightPressedButtonIndex = -1;
     bool m_rightPressedVolume = false;
+    bool m_rightPressedTime = false;
     UINT m_pressedCommand = 0;
     CRect m_pressedButtonRect;
 

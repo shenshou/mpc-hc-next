@@ -502,8 +502,10 @@ void CPlayerSeekBar::UpdateTime()
     const int newEffWidth = TimeSectionEffectiveWidth();
     if (newEffWidth != oldEffWidth) {
         Invalidate(); // channel geometry changed (section appeared/disappeared or resized)
+        m_pMainFrame->UpdateModernZOverlay();
     } else if (textChanged) {
         InvalidateRect(GetTimeRect()); // same footprint, only the text changed
+        m_pMainFrame->RefreshModernZOverlay();
     }
 }
 
@@ -918,6 +920,68 @@ void CPlayerSeekBar::DrawOverlay(CDC& dc, const CRect& bounds)
         dc.Ellipse(&thumb);
         dc.SelectObject(oldPen);
         dc.SelectObject(oldBrush);
+    }
+}
+
+int CPlayerSeekBar::GetOverlayTimeWidth() const
+{
+    return TimeSectionVisible()
+           ? TimeSectionEffectiveWidth() + m_pMainFrame->m_dpi.ScaleX(TIME_SECTION_GAP)
+           : 0;
+}
+
+bool CPlayerSeekBar::GetOverlayTimeLayout(const CRect& bounds, CRect& trackBounds, CRect& timeBounds) const
+{
+    trackBounds = bounds;
+    timeBounds.SetRectEmpty();
+    if (!TimeSectionVisible()) {
+        return false;
+    }
+
+    const int timeWidth = TimeSectionEffectiveWidth();
+    const int gap = m_pMainFrame->m_dpi.ScaleX(TIME_SECTION_GAP);
+    if (timeWidth <= 0 || bounds.Width() <= timeWidth + gap + m_pMainFrame->m_dpi.ScaleX(48)) {
+        return false;
+    }
+
+    if (TimeSectionOnLeft()) {
+        timeBounds.SetRect(bounds.left, bounds.top, bounds.left + timeWidth, bounds.bottom);
+        trackBounds.left = timeBounds.right + gap;
+    } else {
+        timeBounds.SetRect(bounds.right - timeWidth, bounds.top, bounds.right, bounds.bottom);
+        trackBounds.right = timeBounds.left - gap;
+    }
+    return true;
+}
+
+void CPlayerSeekBar::DrawOverlayTime(CDC& dc, const CRect& timeBounds) const
+{
+    if (timeBounds.IsRectEmpty() || !TimeSectionVisible()) {
+        return;
+    }
+
+    EnsureTimeFont();
+    CFont* pOldFont = dc.SelectObject(&m_timeFont);
+    const int oldBkMode = dc.SetBkMode(TRANSPARENT);
+    const COLORREF oldColor = dc.SetTextColor(RGB(235, 235, 240));
+    CRect textRect(timeBounds);
+    const int padding = m_pMainFrame->m_dpi.ScaleX(TIME_SECTION_PADDING);
+    const UINT align = TimeSectionOnLeft() ? DT_LEFT : DT_RIGHT;
+    if (TimeSectionOnLeft()) {
+        textRect.left += padding;
+    } else {
+        textRect.right -= padding;
+    }
+    dc.DrawText(m_timeText, textRect, align | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+    dc.SetTextColor(oldColor);
+    dc.SetBkMode(oldBkMode);
+    dc.SelectObject(pOldFont);
+}
+
+void CPlayerSeekBar::ShowOverlayTimeOptionsMenu(const CPoint& screenPoint)
+{
+    if (TimeSectionVisible()) {
+        m_pMainFrame->m_wndStatusBar.ShowTimerOptionsMenu(this, screenPoint);
     }
 }
 

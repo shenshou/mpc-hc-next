@@ -143,6 +143,10 @@ public:
     void UpdateOverlayDrag(REFERENCE_TIME rtPos);
     void EndOverlayDrag();
     void DrawOverlay(CDC& dc, const CRect& trackRect);
+    int GetOverlayTimeWidth() const;
+    bool GetOverlayTimeLayout(const CRect& bounds, CRect& trackBounds, CRect& timeBounds) const;
+    void DrawOverlayTime(CDC& dc, const CRect& timeBounds) const;
+    void ShowOverlayTimeOptionsMenu(const CPoint& screenPoint);
     REFERENCE_TIME PositionFromOverlayPoint(int x, const CRect& trackRect) const;
     void PreviewWindowShow(const CPoint point);
     // Show seek preview from an absolute media position supplied by an external control surface.

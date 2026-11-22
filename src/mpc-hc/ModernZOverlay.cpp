@@ -150,7 +150,8 @@ bool CModernZOverlay::SetBounds(const CRect& videoRect)
     // customized toolbar cannot fit, fall back to the native controls instead
     // of allowing the overlay buttons to overlap the volume slider.
     const int requiredVideoWidth = std::max(m_pMainFrame->m_dpi.ScaleX(260),
-                                            requiredButtonWidth + m_pMainFrame->m_dpi.ScaleX(166));
+                                            requiredButtonWidth + m_pMainFrame->m_dpi.ScaleX(166))
+                                   + m_pSeekBar->GetOverlayTimeWidth();
     if (videoRect.Height() <= height || videoRect.Width() <= requiredVideoWidth) {
         m_available = false;
         m_screenRect.SetRectEmpty();
@@ -287,7 +288,7 @@ void CModernZOverlay::StartHideTimer()
         GetWindowRect(&m_screenRect);
     }
     if (!m_autoHide || m_draggingSeek || m_draggingVolume || m_pressedVolumeIcon
-            || m_pressedButtonIndex >= 0 || m_rightPressedVolume || m_rightPressedButtonIndex >= 0
+            || m_pressedButtonIndex >= 0 || m_rightPressedVolume || m_rightPressedTime || m_rightPressedButtonIndex >= 0
             || m_inMenu || !IsWindowVisible()) {
         return;
     }
@@ -394,6 +395,7 @@ void CModernZOverlay::EndActiveDrag()
     m_pressedButtonIndex = -1;
     m_rightPressedButtonIndex = -1;
     m_rightPressedVolume = false;
+    m_rightPressedTime = false;
     m_pressedCommand = 0;
     m_pressedButtonRect.SetRectEmpty();
 }
@@ -462,10 +464,16 @@ bool CModernZOverlay::Render()
     dc.SelectObject(oldPen);
     dc.SelectObject(oldBrush);
 
-    m_seekHitRect.SetRect(m_pMainFrame->m_dpi.ScaleX(20), m_pMainFrame->m_dpi.ScaleY(7),
-                          width - m_pMainFrame->m_dpi.ScaleX(20), m_pMainFrame->m_dpi.ScaleY(25));
+    CRect seekBounds(m_pMainFrame->m_dpi.ScaleX(20), m_pMainFrame->m_dpi.ScaleY(7),
+                     width - m_pMainFrame->m_dpi.ScaleX(20), m_pMainFrame->m_dpi.ScaleY(25));
+    CRect seekTrackBounds;
+    m_pSeekBar->GetOverlayTimeLayout(seekBounds, seekTrackBounds, m_timeHitRect);
+    m_seekHitRect = seekTrackBounds;
     m_pSeekBar->DrawOverlay(dc, CRect(m_seekHitRect.left, m_pMainFrame->m_dpi.ScaleY(15),
                                       m_seekHitRect.right, m_pMainFrame->m_dpi.ScaleY(16)));
+    if (!m_timeHitRect.IsRectEmpty()) {
+        m_pSeekBar->DrawOverlayTime(dc, m_timeHitRect);
+    }
 
     const int rowTop = m_pMainFrame->m_dpi.ScaleY(34);
     const int rowHeight = m_pMainFrame->m_dpi.ScaleY(30);
@@ -808,14 +816,16 @@ void CModernZOverlay::OnRButtonDown(UINT nFlags, CPoint point)
     HideVolumeTooltip();
     m_pSeekBar->HideOverlayTooltip();
     m_pMainFrame->PreviewWindowHide();
-    m_rightPressedVolume = m_volumeIconRect.PtInRect(point) && m_volumeButtonIndex >= 0;
-    m_rightPressedButtonIndex = m_rightPressedVolume ? -1 : HitTestButton(point);
-    if (m_rightPressedVolume || m_rightPressedButtonIndex >= 0) {
+    m_rightPressedTime = m_timeHitRect.PtInRect(point);
+    m_rightPressedVolume = !m_rightPressedTime && m_volumeIconRect.PtInRect(point) && m_volumeButtonIndex >= 0;
+    m_rightPressedButtonIndex = (m_rightPressedTime || m_rightPressedVolume) ? -1 : HitTestButton(point);
+    if (m_rightPressedTime || m_rightPressedVolume || m_rightPressedButtonIndex >= 0) {
         SetCapture();
     } else if (!m_pMainFrame->m_fFullScreen
                && !m_seekHitRect.PtInRect(point)
                && !m_volumeTrackRect.PtInRect(point)
-               && !m_volumeIconRect.PtInRect(point)) {
+               && !m_volumeIconRect.PtInRect(point)
+               && !m_timeHitRect.PtInRect(point)) {
         ClientToScreen(&point);
         m_pMainFrame->PostMessage(WM_NCRBUTTONDOWN, HTCAPTION, MAKELPARAM(point.x, point.y));
     }
@@ -824,10 +834,13 @@ void CModernZOverlay::OnRButtonDown(UINT nFlags, CPoint point)
 void CModernZOverlay::OnRButtonUp(UINT nFlags, CPoint point)
 {
     UNREFERENCED_PARAMETER(nFlags);
+    const bool pressedTime = m_rightPressedTime;
+    const bool releasedTime = m_timeHitRect.PtInRect(point);
     const bool pressedVolume = m_rightPressedVolume;
     const int pressedIndex = m_rightPressedButtonIndex;
     const bool releasedVolume = m_volumeIconRect.PtInRect(point) && m_volumeButtonIndex >= 0;
     const int releasedIndex = HitTestButton(point);
+    m_rightPressedTime = false;
     m_rightPressedVolume = false;
     m_rightPressedButtonIndex = -1;
 
@@ -835,7 +848,13 @@ void CModernZOverlay::OnRButtonUp(UINT nFlags, CPoint point)
         ReleaseCapture();
     }
 
-    if (pressedVolume && releasedVolume) {
+    if (pressedTime && releasedTime) {
+        CPoint screenPoint(point);
+        ClientToScreen(&screenPoint);
+        m_inMenu = true;
+        m_pSeekBar->ShowOverlayTimeOptionsMenu(screenPoint);
+        m_inMenu = false;
+    } else if (pressedVolume && releasedVolume) {
         CRect screenRect(m_volumeIconRect);
         ClientToScreen(&screenRect);
         m_inMenu = true;
@@ -901,7 +920,7 @@ void CModernZOverlay::OnTimer(UINT_PTR nIDEvent)
     if (nIDEvent == TIMER_HIDE) {
         KillTimer(TIMER_HIDE);
         if (m_autoHide && !m_draggingSeek && !m_draggingVolume && !m_pressedVolumeIcon
-                && m_pressedButtonIndex < 0 && !m_rightPressedVolume && m_rightPressedButtonIndex < 0
+                && m_pressedButtonIndex < 0 && !m_rightPressedVolume && !m_rightPressedTime && m_rightPressedButtonIndex < 0
                 && !m_inMenu) {
             HideOverlay();
         }
