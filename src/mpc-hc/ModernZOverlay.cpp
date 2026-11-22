@@ -188,6 +188,8 @@ void CModernZOverlay::ShowOverlay()
 void CModernZOverlay::HideOverlay()
 {
     KillTimer(TIMER_HIDE);
+    m_trackingMouseLeave = false;
+    m_hotButtonIndex = -1;
     if (::IsWindow(m_hWnd)) {
         ShowWindow(SW_HIDE);
     }
@@ -589,6 +591,7 @@ void CModernZOverlay::OnPaint()
 void CModernZOverlay::OnDestroy()
 {
     KillTimer(TIMER_HIDE);
+    m_trackingMouseLeave = false;
     m_available = false;
     m_pVideoParent = nullptr;
     __super::OnDestroy();

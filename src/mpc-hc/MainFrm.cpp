@@ -1848,7 +1848,8 @@ void CMainFrame::UpdateModernZOverlay()
     } guard(m_bUpdatingModernZOverlay);
 
     const CAppSettings& settings = AfxGetAppSettings();
-    const bool supported = settings.bModernZControls
+    const bool supported = IsWindows8OrGreater()
+                           && settings.bModernZControls
                            && GetLoadState() == MLS::LOADED
                            && !m_fAudioOnly
                            && IsWindowVisible()
@@ -2231,6 +2232,7 @@ LRESULT CMainFrame::OnDpiChanged(WPARAM wParam, LPARAM lParam)
     ReloadMenus();
 
     RecalcLayout();
+    UpdateModernZOverlay();
     m_wndPreView.ScaleFont();
     return 0;
 }
