@@ -51,6 +51,7 @@ private:
 
     static constexpr UINT_PTR TIMER_HIDE = 1;
     static constexpr UINT_PTR TIMER_TOOLTIP = 2;
+    static constexpr UINT_PTR TIMER_VOLUME_TOOLTIP = 3;
     static constexpr UINT HIDE_DELAY_MS = 2000;
     static constexpr UINT TOOLTIP_DELAY_MS = 500;
 
@@ -79,8 +80,13 @@ private:
     bool m_trackingMouseLeave = false;
     bool m_inMenu = false;
     bool m_hoveringSeek = false;
+    bool m_hoveringVolume = false;
     REFERENCE_TIME m_hoverSeekPosition = 0;
     CPoint m_hoverSeekScreenPoint;
+    CPoint m_hoverVolumeScreenPoint;
+    CString m_volumeTooltipText;
+    TOOLINFO m_volumeToolInfo = {};
+    CToolTipCtrl m_volumeTooltip;
     bool m_available = false;
 
     bool CreateOverlayWindow(CWnd* parent);
@@ -90,5 +96,7 @@ private:
     bool Render();
     int HitTestButton(const CPoint& point) const;
     void UpdateVolumeFromPoint(int x);
+    void ShowVolumeTooltip(const CPoint& screenPoint);
+    void HideVolumeTooltip();
     void EndActiveDrag();
 };
