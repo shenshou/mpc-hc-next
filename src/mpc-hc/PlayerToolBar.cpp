@@ -925,7 +925,7 @@ bool CPlayerToolBar::GetOverlayButtonRect(int index, CRect& rect) const
     return toolbar.GetItemRect(index, &rect) != FALSE;
 }
 
-void CPlayerToolBar::DispatchOverlayButton(UINT command, bool rightClick)
+void CPlayerToolBar::DispatchOverlayButton(UINT command, int buttonIndex, bool rightClick)
 {
     if (!::IsWindow(m_hWnd) || command == 0) {
         return;
@@ -966,8 +966,12 @@ void CPlayerToolBar::DispatchOverlayButton(UINT command, bool rightClick)
             break;
     }
 
-    if (messageId != 0) {
-        m_pMainFrame->SendMessage(WM_COMMAND, MAKEWPARAM(messageId, 0));
+    if (messageId > 0) {
+        if (CmdIsMenu(messageId)) {
+            DoCustomContextMenu(command, messageId, buttonIndex, VK_RBUTTON);
+        } else {
+            m_pMainFrame->PostMessage(WM_COMMAND, messageId);
+        }
     }
 }
 
