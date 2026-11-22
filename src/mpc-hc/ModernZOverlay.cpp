@@ -723,6 +723,8 @@ void CModernZOverlay::OnPaint()
 
 void CModernZOverlay::OnDestroy()
 {
+    m_pSeekBar->HideOverlayTooltip();
+    m_pMainFrame->PreviewWindowHide();
     KillTimer(TIMER_HIDE);
     KillTimer(TIMER_TOOLTIP);
     KillTimer(TIMER_VOLUME_TOOLTIP);
