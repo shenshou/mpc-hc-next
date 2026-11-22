@@ -198,6 +198,8 @@ void CModernZOverlay::NotifyVideoMouseMove(const CPoint& screenPoint)
     if (m_screenRect.PtInRect(screenPoint)) {
         ShowOverlay();
     } else if (IsWindowVisible()) {
+        KillTimer(TIMER_BUTTON_TOOLTIP);
+        m_hoverTooltipButtonIndex = -1;
         KillTimer(TIMER_VOLUME_TOOLTIP);
         m_hoveringVolume = false;
         HideVolumeTooltip();
@@ -212,6 +214,8 @@ void CModernZOverlay::NotifyVideoMouseMove(const CPoint& screenPoint)
 void CModernZOverlay::NotifyVideoMouseLeave()
 {
     KillTimer(TIMER_TOOLTIP);
+    KillTimer(TIMER_BUTTON_TOOLTIP);
+    m_hoverTooltipButtonIndex = -1;
     m_hoveringSeek = false;
     m_hoveringVolume = false;
     KillTimer(TIMER_VOLUME_TOOLTIP);
@@ -258,6 +262,7 @@ void CModernZOverlay::HideOverlay()
     KillTimer(TIMER_HIDE);
     KillTimer(TIMER_TOOLTIP);
     KillTimer(TIMER_VOLUME_TOOLTIP);
+    KillTimer(TIMER_BUTTON_TOOLTIP);
     m_hoveringSeek = false;
     m_hoveringVolume = false;
     HideVolumeTooltip();
@@ -320,6 +325,37 @@ void CModernZOverlay::ShowVolumeTooltip(const CPoint& screenPoint)
     m_volumeTooltip.SendMessage(TTM_TRACKPOSITION, 0,
                                 MAKELPARAM(screenPoint.x - m_pMainFrame->m_dpi.ScaleX(24),
                                            screenPoint.y - m_pMainFrame->m_dpi.ScaleY(28)));
+}
+
+void CModernZOverlay::ShowButtonTooltip(int buttonIndex, const CPoint& screenPoint)
+{
+    if (!m_volumeTooltip.GetSafeHwnd()) {
+        return;
+    }
+
+    TBBUTTON button = {};
+    CString tooltipText;
+    if (!m_pToolBar->GetOverlayButton(buttonIndex, button)
+            || !m_pToolBar->GetOverlayButtonTooltipText(button.idCommand, tooltipText)) {
+        HideVolumeTooltip();
+        return;
+    }
+
+    m_volumeTooltipText = tooltipText;
+    m_volumeToolInfo.lpszText = const_cast<LPTSTR>((LPCTSTR)m_volumeTooltipText);
+    m_volumeTooltip.SendMessage(TTM_UPDATETIPTEXT, 0, (LPARAM)&m_volumeToolInfo);
+    m_volumeTooltip.SendMessage(TTM_TRACKACTIVATE, TRUE, (LPARAM)&m_volumeToolInfo);
+
+    const CSize bubbleSize(m_volumeTooltip.GetBubbleSize(&m_volumeToolInfo));
+    MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+    GetMonitorInfoW(MonitorFromPoint(screenPoint, MONITOR_DEFAULTTONEAREST), &monitorInfo);
+    CPoint position(screenPoint.x - bubbleSize.cx / 2,
+                    screenPoint.y - bubbleSize.cy - m_pMainFrame->m_dpi.ScaleY(8));
+    position.x = std::max(monitorInfo.rcWork.left + 5,
+                          std::min(position.x, monitorInfo.rcWork.right - bubbleSize.cx - 5));
+    position.y = std::max(monitorInfo.rcWork.top + 5,
+                          std::min(position.y, monitorInfo.rcWork.bottom - bubbleSize.cy - 5));
+    m_volumeTooltip.SendMessage(TTM_TRACKPOSITION, 0, MAKELPARAM(position.x, position.y));
 }
 
 void CModernZOverlay::HideVolumeTooltip()
@@ -535,9 +571,23 @@ void CModernZOverlay::OnMouseMove(UINT nFlags, CPoint point)
             Render();
         }
 
+        const int tooltipButton = m_volumeIconRect.PtInRect(point) ? m_volumeButtonIndex : hot;
+        if (tooltipButton != m_hoverTooltipButtonIndex) {
+            KillTimer(TIMER_BUTTON_TOOLTIP);
+            HideVolumeTooltip();
+            m_hoverTooltipButtonIndex = tooltipButton;
+            if (tooltipButton >= 0) {
+                m_hoverButtonScreenPoint = point;
+                ClientToScreen(&m_hoverButtonScreenPoint);
+                SetTimer(TIMER_BUTTON_TOOLTIP, TOOLTIP_DELAY_MS, nullptr);
+            }
+        }
+
         if (m_seekHitRect.PtInRect(point) && AfxGetAppSettings().fUseSeekbarHover) {
             m_hoveringSeek = true;
             m_hoveringVolume = false;
+            m_hoverTooltipButtonIndex = -1;
+            KillTimer(TIMER_BUTTON_TOOLTIP);
             KillTimer(TIMER_VOLUME_TOOLTIP);
             HideVolumeTooltip();
             m_hoverSeekPosition = m_pSeekBar->PositionFromOverlayPoint(point.x, m_seekHitRect);
@@ -555,15 +605,20 @@ void CModernZOverlay::OnMouseMove(UINT nFlags, CPoint point)
             KillTimer(TIMER_TOOLTIP);
             m_pSeekBar->HideOverlayTooltip();
             m_pMainFrame->PreviewWindowHide();
-            if (m_volumeBounds.PtInRect(point)) {
+            if (m_volumeTrackRect.PtInRect(point)) {
                 m_hoveringVolume = true;
+                m_hoverTooltipButtonIndex = -1;
+                KillTimer(TIMER_BUTTON_TOOLTIP);
+                HideVolumeTooltip();
                 m_hoverVolumeScreenPoint = point;
                 ClientToScreen(&m_hoverVolumeScreenPoint);
                 SetTimer(TIMER_VOLUME_TOOLTIP, TOOLTIP_DELAY_MS, nullptr);
             } else {
                 m_hoveringVolume = false;
                 KillTimer(TIMER_VOLUME_TOOLTIP);
-                HideVolumeTooltip();
+                if (tooltipButton < 0) {
+                    HideVolumeTooltip();
+                }
             }
         }
     }
@@ -762,6 +817,13 @@ BOOL CModernZOverlay::OnMouseWheel(UINT nFlags, short zDelta, CPoint point)
 
 void CModernZOverlay::OnTimer(UINT_PTR nIDEvent)
 {
+    if (nIDEvent == TIMER_BUTTON_TOOLTIP) {
+        KillTimer(TIMER_BUTTON_TOOLTIP);
+        if (m_hoverTooltipButtonIndex >= 0 && !m_draggingSeek && !m_draggingVolume) {
+            ShowButtonTooltip(m_hoverTooltipButtonIndex, m_hoverButtonScreenPoint);
+        }
+        return;
+    }
     if (nIDEvent == TIMER_VOLUME_TOOLTIP) {
         KillTimer(TIMER_VOLUME_TOOLTIP);
         if (m_hoveringVolume && !m_draggingVolume) {
@@ -815,6 +877,8 @@ void CModernZOverlay::OnDestroy()
     KillTimer(TIMER_HIDE);
     KillTimer(TIMER_TOOLTIP);
     KillTimer(TIMER_VOLUME_TOOLTIP);
+    KillTimer(TIMER_BUTTON_TOOLTIP);
+    m_hoverTooltipButtonIndex = -1;
     HideVolumeTooltip();
     if (m_volumeTooltip.GetSafeHwnd()) {
         m_volumeTooltip.DestroyWindow();

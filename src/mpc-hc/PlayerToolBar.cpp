@@ -916,6 +916,41 @@ bool CPlayerToolBar::GetOverlayButton(int index, TBBUTTON& button) const
     return (button.fsState & TBSTATE_HIDDEN) == 0;
 }
 
+bool CPlayerToolBar::GetOverlayButtonTooltipText(UINT command, CString& text) const
+{
+    CToolBarCtrl& toolbar = const_cast<CPlayerToolBar*>(this)->GetToolBarCtrl();
+    TBBUTTONINFO buttonInfo = {};
+    buttonInfo.cbSize = sizeof(buttonInfo);
+    buttonInfo.dwMask = TBIF_IMAGE;
+    if (toolbar.GetButtonInfo(command, &buttonInfo) == -1) {
+        return false;
+    }
+
+    const auto& settings = AfxGetAppSettings();
+    if (command != ID_VOLUME_MUTE) {
+        const auto commandIt = settings.CommandIDToWMCMD.find(command);
+        if (commandIt != settings.CommandIDToWMCMD.end()) {
+            text.LoadStringW(commandIt->second->dwname);
+        } else {
+            const auto svgIt = supportedSvgButtons.find(static_cast<WORD>(command));
+            if (svgIt == supportedSvgButtons.end() || !svgIt->second.strID) {
+                return false;
+            }
+            const auto& info = svgIt->second;
+            text.LoadStringW(buttonInfo.iImage == info.svgIndex && info.activeStrID
+                             ? info.activeStrID : info.strID);
+        }
+    } else if (buttonInfo.iImage == VOLUMEBUTTON_SVG_INDEX) {
+        text.LoadStringW(ID_VOLUME_MUTE);
+    } else if (buttonInfo.iImage == VOLUMEBUTTON_SVG_INDEX + 1) {
+        text.LoadStringW(ID_VOLUME_MUTE_OFF);
+    } else {
+        return false;
+    }
+
+    return !text.IsEmpty();
+}
+
 bool CPlayerToolBar::GetOverlayButtonRect(int index, CRect& rect) const
 {
     TBBUTTON button = {};
