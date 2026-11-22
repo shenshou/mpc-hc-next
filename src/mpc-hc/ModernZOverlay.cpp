@@ -261,6 +261,8 @@ void CModernZOverlay::ShowOverlay()
 void CModernZOverlay::HideOverlay()
 {
     KillTimer(TIMER_HIDE);
+    KillTimer(TIMER_HIDE);
+    KillTimer(TIMER_HIDE);
     KillTimer(TIMER_TOOLTIP);
     KillTimer(TIMER_VOLUME_TOOLTIP);
     KillTimer(TIMER_BUTTON_TOOLTIP);
@@ -283,7 +285,9 @@ void CModernZOverlay::StartHideTimer()
     if (::IsWindow(m_hWnd)) {
         GetWindowRect(&m_screenRect);
     }
-    if (!m_autoHide || m_draggingSeek || m_draggingVolume || m_inMenu || !IsWindowVisible()) {
+    if (!m_autoHide || m_draggingSeek || m_draggingVolume || m_pressedVolumeIcon
+            || m_pressedButtonIndex >= 0 || m_rightPressedVolume || m_rightPressedButtonIndex >= 0
+            || m_inMenu || !IsWindowVisible()) {
         return;
     }
     CPoint cursor;
@@ -892,7 +896,9 @@ void CModernZOverlay::OnTimer(UINT_PTR nIDEvent)
     }
     if (nIDEvent == TIMER_HIDE) {
         KillTimer(TIMER_HIDE);
-        if (m_autoHide && !m_draggingSeek && !m_draggingVolume && !m_inMenu) {
+        if (m_autoHide && !m_draggingSeek && !m_draggingVolume && !m_pressedVolumeIcon
+                && m_pressedButtonIndex < 0 && !m_rightPressedVolume && m_rightPressedButtonIndex < 0
+                && !m_inMenu) {
             HideOverlay();
         }
         return;
