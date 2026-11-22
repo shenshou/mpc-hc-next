@@ -102,8 +102,9 @@ bool CModernZOverlay::SetBounds(const CRect& videoRect)
         return false;
     }
 
-    const int height = std::min(videoRect.Height(), m_pMainFrame->m_dpi.ScaleY(76));
-    if (height <= 0 || videoRect.Width() <= m_pMainFrame->m_dpi.ScaleX(80)) {
+    const int height = m_pMainFrame->m_dpi.ScaleY(76);
+    if (videoRect.Height() <= m_pMainFrame->m_dpi.ScaleY(68)
+            || videoRect.Width() <= m_pMainFrame->m_dpi.ScaleX(260)) {
         HideOverlay();
         return false;
     }

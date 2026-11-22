@@ -1020,7 +1020,7 @@ bool CPlayerToolBar::DrawOverlayButton(CDC& dc, int index, const CRect& rect, bo
         CPen* oldPen = dc.SelectObject(&pen);
         CRect background(rect);
         background.DeflateRect(1, 1);
-        dc.RoundRect(&background, CPoint(6, 6));
+        dc.RoundRect(&background, CPoint(m_pMainFrame->m_dpi.ScaleX(6), m_pMainFrame->m_dpi.ScaleY(6)));
         dc.SelectObject(oldPen);
         dc.SelectObject(oldBrush);
     }
