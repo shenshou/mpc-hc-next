@@ -1819,13 +1819,11 @@ void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
 
 void CMainFrame::UpdatePlayerUIAppearance()
 {
-    RecalcLayout();
     m_wndSeekBar.Invalidate();
     m_wndToolBar.Invalidate();
     if (m_wndToolBar.m_volctrl.GetSafeHwnd()) {
-        m_wndToolBar.m_volctrl.OnMPCThemeChanged(0, 0);
+        m_wndToolBar.m_volctrl.Invalidate();
     }
-    UpdateWindowCornerRounding();
 }
 
 void CMainFrame::OnSize(UINT nType, int cx, int cy)
@@ -6521,7 +6519,6 @@ void CMainFrame::SetCaptionState(MpcCaptionState eState)
 
     VERIFY(SetWindowPos(nullptr, windowRect.left, windowRect.top, windowRect.Width(), windowRect.Height(), uFlags));
     OSDBarSetPos();
-    UpdateWindowCornerRounding();
 }
 
 void CMainFrame::OnViewCaptionmenu()
