@@ -669,6 +669,9 @@ void CModernZOverlay::OnLButtonDown(UINT nFlags, CPoint point)
             m_draggingSeek = true;
             SetCapture();
             m_pSeekBar->UpdateOverlayDrag(m_pSeekBar->PositionFromOverlayPoint(point.x, m_seekHitRect));
+        } else if (!m_pMainFrame->m_fFullScreen && !m_pSeekBar->DraggingThumb()) {
+            ClientToScreen(&point);
+            m_pMainFrame->PostMessage(WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(point.x, point.y));
         }
         return;
     }
