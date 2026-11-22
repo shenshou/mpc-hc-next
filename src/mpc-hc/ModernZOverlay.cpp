@@ -356,7 +356,10 @@ bool CModernZOverlay::Render()
         m_pToolBar->DrawOverlayButton(dc, item.index, buttonRect,
                                       m_hotButtonIndex == item.index,
                                       m_pressedButtonIndex == item.index);
-        m_buttonHits.push_back({ item.index, item.command, buttonRect });
+        TBBUTTON stateButton = {};
+        if (m_pToolBar->GetOverlayButton(item.index, stateButton) && (stateButton.fsState & TBSTATE_ENABLED)) {
+            m_buttonHits.push_back({ item.index, item.command, buttonRect });
+        }
         buttonX += item.width + item.gap;
     }
 
@@ -403,8 +406,6 @@ void CModernZOverlay::OnMouseMove(UINT nFlags, CPoint point)
 
     KillTimer(TIMER_HIDE);
     if (m_draggingSeek) {
-        CPlayerSeekBar::OverlayState state = {};
-        m_pSeekBar->GetOverlayState(state);
         m_pSeekBar->UpdateOverlayDrag(m_pSeekBar->PositionFromOverlayPoint(point.x, m_seekHitRect));
     } else if (m_draggingVolume) {
         UpdateVolumeFromPoint(point.x);
@@ -503,6 +504,16 @@ void CModernZOverlay::OnLButtonUp(UINT nFlags, CPoint point)
 
 void CModernZOverlay::OnRButtonUp(UINT nFlags, CPoint point)
 {
+    if (m_volumeIconRect.PtInRect(point) && m_volumeButtonIndex >= 0) {
+        CRect screenRect(m_volumeIconRect);
+        ClientToScreen(&screenRect);
+        m_inMenu = true;
+        m_pToolBar->DispatchOverlayButton(ID_VOLUME_MUTE, m_volumeButtonIndex, screenRect, true);
+        m_inMenu = false;
+        StartHideTimer();
+        return;
+    }
+
     const int index = HitTestButton(point);
     if (index < 0) {
         return;
@@ -525,6 +536,10 @@ void CModernZOverlay::OnRButtonUp(UINT nFlags, CPoint point)
 
 BOOL CModernZOverlay::OnMouseWheel(UINT nFlags, short zDelta, CPoint point)
 {
+    ScreenToClient(&point);
+    if (!m_volumeBounds.PtInRect(point)) {
+        return FALSE;
+    }
     if (zDelta > 0) {
         m_pToolBar->m_volctrl.IncreaseVolume();
     } else if (zDelta < 0) {
