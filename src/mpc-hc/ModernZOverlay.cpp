@@ -264,7 +264,6 @@ void CModernZOverlay::HideOverlay()
     KillTimer(TIMER_VOLUME_TOOLTIP);
     KillTimer(TIMER_BUTTON_TOOLTIP);
     m_hoverTooltipButtonIndex = -1;
-    KillTimer(TIMER_BUTTON_TOOLTIP);
     m_hoveringSeek = false;
     m_hoveringVolume = false;
     HideVolumeTooltip();
@@ -374,7 +373,6 @@ void CModernZOverlay::EndActiveDrag()
     KillTimer(TIMER_VOLUME_TOOLTIP);
     KillTimer(TIMER_BUTTON_TOOLTIP);
     m_hoverTooltipButtonIndex = -1;
-    HideVolumeTooltip();
     m_hoveringSeek = false;
     m_hoveringVolume = false;
     HideVolumeTooltip();
