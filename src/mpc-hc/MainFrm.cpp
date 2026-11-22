@@ -1830,7 +1830,8 @@ void CMainFrame::UpdatePlayerUIAppearance()
         if (m_wndToolBar.m_volctrl.GetSafeHwnd()) {
             m_wndToolBar.m_volctrl.Invalidate();
         }
-    }    UpdateModernZOverlay();
+    }
+    UpdateModernZOverlay();
 }
 
 
