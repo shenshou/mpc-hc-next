@@ -223,9 +223,6 @@ void CModernZOverlay::HideOverlay()
     m_hoveringSeek = false;
     m_hoveringVolume = false;
     HideVolumeTooltip();
-    m_hoveringVolume = false;
-    KillTimer(TIMER_VOLUME_TOOLTIP);
-    HideVolumeTooltip();
     m_pSeekBar->HideOverlayTooltip();
     m_pMainFrame->PreviewWindowHide();
     m_trackingMouseLeave = false;
@@ -281,10 +278,10 @@ void CModernZOverlay::ShowVolumeTooltip(const CPoint& screenPoint)
     m_volumeTooltipText.Format(IDS_VOLUME, m_pToolBar->m_volctrl.GetPos());
     m_volumeToolInfo.lpszText = const_cast<LPTSTR>((LPCTSTR)m_volumeTooltipText);
     m_volumeTooltip.SendMessage(TTM_UPDATETIPTEXT, 0, (LPARAM)&m_volumeToolInfo);
+    m_volumeTooltip.SendMessage(TTM_TRACKACTIVATE, TRUE, (LPARAM)&m_volumeToolInfo);
     m_volumeTooltip.SendMessage(TTM_TRACKPOSITION, 0,
                                 MAKELPARAM(screenPoint.x - m_pMainFrame->m_dpi.ScaleX(24),
                                            screenPoint.y - m_pMainFrame->m_dpi.ScaleY(28)));
-    m_volumeTooltip.SendMessage(TTM_TRACKACTIVATE, TRUE, (LPARAM)&m_volumeToolInfo);
 }
 
 void CModernZOverlay::HideVolumeTooltip()
@@ -537,7 +534,10 @@ void CModernZOverlay::OnMouseLeave()
     m_trackingMouseLeave = false;
     m_hotButtonIndex = -1;
     m_hoveringSeek = false;
+    m_hoveringVolume = false;
     KillTimer(TIMER_TOOLTIP);
+    KillTimer(TIMER_VOLUME_TOOLTIP);
+    HideVolumeTooltip();
     m_pSeekBar->HideOverlayTooltip();
     m_pMainFrame->PreviewWindowHide();
     Render();
@@ -727,6 +727,9 @@ void CModernZOverlay::OnDestroy()
     KillTimer(TIMER_TOOLTIP);
     KillTimer(TIMER_VOLUME_TOOLTIP);
     HideVolumeTooltip();
+    if (m_volumeTooltip.GetSafeHwnd()) {
+        m_volumeTooltip.DestroyWindow();
+    }
     m_trackingMouseLeave = false;
     m_available = false;
     m_pVideoParent = nullptr;
