@@ -39,6 +39,9 @@ UINT CMainFrameControls::GetEffectiveToolbarsSelection()
 {
     const auto& s = AfxGetAppSettings();
     UINT ret = s.nCS;
+    if (m_bModernZControlsHidden) {
+        ret &= ~(CS_SEEKBAR | CS_TOOLBAR);
+    }
     if (m_pMainFrame->GetPlaybackMode() == PM_DIGITAL_CAPTURE
             || m_pMainFrame->GetPlaybackMode() == PM_ANALOG_CAPTURE) {
         ret &= ~CS_SEEKBAR;
@@ -136,6 +139,7 @@ bool CMainFrameControls::InFullscreenWithPermahiddenDockedPanels()
 
 CMainFrameControls::CMainFrameControls(CMainFrame* pMainFrame)
     : m_pMainFrame(pMainFrame)
+    , m_bModernZControlsHidden(AfxGetAppSettings().bModernZControls)
     , m_bDelayShowNotLoaded(false)
 {
 }
@@ -153,6 +157,24 @@ bool CMainFrameControls::ControlChecked(Toolbar toolbar)
     const auto& st = m_controlsVisibilityState;
     const auto nID = static_cast<UINT>(toolbar);
     return !!(st.nCurrentCS & (1 << nID));
+}
+
+bool CMainFrameControls::ControlConfigured(Toolbar toolbar) const
+{
+    const auto nID = static_cast<UINT>(toolbar);
+    return !!(AfxGetAppSettings().nCS & (1 << nID));
+}
+
+void CMainFrameControls::SetModernZControlsHidden(bool hidden)
+{
+    if (m_bModernZControlsHidden == hidden) {
+        return;
+    }
+
+    m_bModernZControlsHidden = hidden;
+    if (ShowToolbarsSelection()) {
+        m_pMainFrame->RecalcLayout();
+    }
 }
 
 bool CMainFrameControls::ControlChecked(Panel panel)
