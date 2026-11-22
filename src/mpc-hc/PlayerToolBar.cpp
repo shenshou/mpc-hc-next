@@ -900,6 +900,73 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
     *pResult = lr;
 }
 
+int CPlayerToolBar::GetOverlayButtonCount() const
+{
+    return const_cast<CPlayerToolBar*>(this)->GetToolBarCtrl().GetButtonCount();
+}
+
+bool CPlayerToolBar::GetOverlayButton(int index, TBBUTTON& button) const
+{
+    CToolBarCtrl& toolbar = const_cast<CPlayerToolBar*>(this)->GetToolBarCtrl();
+    if (index < 0 || index >= toolbar.GetButtonCount() || !toolbar.GetButton(index, &button)) {
+        return false;
+    }
+    return (button.fsState & TBSTATE_HIDDEN) == 0;
+}
+
+bool CPlayerToolBar::DrawOverlayButton(CDC& dc, int index, const CRect& rect, bool hot, bool pressed) const
+{
+    TBBUTTON button = {};
+    if (rect.IsRectEmpty() || !GetOverlayButton(index, button)
+            || (button.fsStyle & TBSTYLE_SEP) || button.idCommand == ID_VOLUME_MUTE
+            || button.iBitmap < 0) {
+        return false;
+    }
+
+    const bool enabled = (button.fsState & TBSTATE_ENABLED) != 0;
+    const bool checked = (button.fsState & TBSTATE_CHECKED) != 0;
+    const bool bMpcThemeLoaded = AppIsThemeLoaded();
+    const bool bModernZ = AfxGetAppSettings().bModernZControls;
+    if (bModernZ && (checked || hot || pressed)) {
+        const COLORREF color = bMpcThemeLoaded
+                               ? (pressed ? CMPCTheme::PlayerButtonClickedColor
+                                          : checked ? CMPCTheme::PlayerButtonCheckedColor
+                                                    : CMPCTheme::PlayerButtonHotColor)
+                               : (pressed ? RGB(55, 55, 61)
+                                          : checked ? RGB(66, 66, 72)
+                                                    : RGB(45, 45, 51));
+        CBrush brush(color);
+        CPen pen(PS_NULL, 0, color);
+        CBrush* oldBrush = dc.SelectObject(&brush);
+        CPen* oldPen = dc.SelectObject(&pen);
+        CRect background(rect);
+        background.DeflateRect(1, 1);
+        dc.RoundRect(&background, CPoint(6, 6));
+        dc.SelectObject(oldPen);
+        dc.SelectObject(oldBrush);
+    }
+
+    CImageList* imageList = enabled ? m_pButtonsImages.get() : m_pDisabledButtonsImages.get();
+    if (!imageList || !imageList->GetSafeHandle()) {
+        imageList = m_pButtonsImages.get();
+    }
+    if (!imageList || !imageList->GetSafeHandle()) {
+        return false;
+    }
+
+    int imageWidth = 0;
+    int imageHeight = 0;
+    if (!ImageList_GetIconSize(imageList->GetSafeHandle(), &imageWidth, &imageHeight)
+            || imageWidth <= 0 || imageHeight <= 0) {
+        return false;
+    }
+
+    const int x = rect.left + (rect.Width() - imageWidth) / 2;
+    const int y = rect.top + (rect.Height() - imageHeight) / 2;
+    return ImageList_Draw(imageList->GetSafeHandle(), button.iBitmap, dc.GetSafeHdc(), x, y,
+                          enabled ? ILD_TRANSPARENT : ILD_TRANSPARENT) != FALSE;
+}
+
 void CPlayerToolBar::OnSize(UINT nType, int cx, int cy)
 {
     __super::OnSize(nType, cx, cy);
