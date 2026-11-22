@@ -359,10 +359,10 @@ CRect CPlayerSeekBar::GetTimeRect() const
 
 bool CPlayerSeekBar::ShowTimeOnSeekBar() const
 {
-    const CAppSettings& s = AfxGetAppSettings();
     if (!AppIsThemeLoaded()) {
         return false; // time on the seekbar is only supported with the modern theme
     }
+    const CAppSettings& s = AfxGetAppSettings();
     switch (s.nTimeOnSeekBar) {
         case TIME_ON_SEEKBAR_ALWAYS:
             return true;
