@@ -9939,17 +9939,6 @@ void CMainFrame::MoveVideoWindow(bool fShowStats/* = false*/, bool bSetStoppedVi
         } else {
             m_modernZVideoRect.SetRectEmpty();
         }
-        if (m_pModernZOverlay) {
-            if (m_bModernZOverlayActive) {
-                if (!m_pModernZOverlay->SetBounds(m_modernZVideoRect)) {
-                    m_bModernZOverlayActive = false;
-                    m_controls.SetModernZControlsHidden(false);
-                }
-            } else {
-                m_pModernZOverlay->SetBounds(CRect());
-            }
-        }
-
         // the bitmap OSD is sized to the renderer's window, which can change without a WM_SIZE of the view
         if (m_OSD.GetOSDType() == OSD_TYPE_BITMAP) {
             m_OSD.OnSize(SIZE_RESTORED, windowRect.Width(), windowRect.Height());
