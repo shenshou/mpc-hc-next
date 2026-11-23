@@ -1889,6 +1889,20 @@ void CMainFrame::UpdateModernZOverlay()
                        && m_pModernZOverlay->IsReady();
     m_bModernZOverlayActive = ready;
     m_controls.SetModernZControlsHidden(ready);
+
+    // Hiding the native controls can resize the video view and recalculate
+    // m_modernZVideoRect. MoveVideoWindow() may run during that layout change,
+    // but its nested UpdateModernZOverlay() is intentionally blocked by the
+    // update guard above. Re-apply the final geometry after the layout settles.
+    if (ready) {
+        const bool layoutReady = !m_modernZVideoRect.IsRectEmpty()
+                                 && m_pModernZOverlay->SetBounds(m_modernZVideoRect)
+                                 && m_pModernZOverlay->IsReady();
+        if (!layoutReady) {
+            m_bModernZOverlayActive = false;
+            m_controls.SetModernZControlsHidden(false);
+        }
+    }
 }
 
 void CMainFrame::OnModernZOverlayUnavailable()
