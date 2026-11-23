@@ -51,6 +51,7 @@ private:
     CPoint m_hoverPoint;
     HCURSOR m_cursor;
     bool m_bDraggingThumb, m_bHoverThumb;
+    bool m_bOverlayDragFirstUpdate = false;
     ULONGLONG m_lastDragSeekTickCount;
     bool pauseAfterFirstScroll = false;
     bool pausedForScrolling = false;
@@ -127,7 +128,34 @@ public:
     void RemoveChapters();
 
     bool DraggingThumb();
+
+    // Read-only state and explicit drag hooks for an external ModernZ overlay.
+    struct OverlayState {
+        bool enabled;
+        bool hasDuration;
+        REFERENCE_TIME start;
+        REFERENCE_TIME stop;
+        REFERENCE_TIME position;
+        REFERENCE_TIME drawPosition;
+    };
+    void GetOverlayState(OverlayState& state) const;
+    bool BeginOverlayDrag();
+    void UpdateOverlayDrag(REFERENCE_TIME rtPos);
+    void EndOverlayDrag();
+    void DrawOverlay(CDC& dc, const CRect& trackRect);
+    int GetOverlayTimeWidth() const;
+    bool GetOverlayTimeLayout(const CRect& bounds, CRect& trackBounds, CRect& timeBounds) const;
+    void DrawOverlayTime(CDC& dc, const CRect& timeBounds) const;
+    void ShowOverlayTimeOptionsMenu(const CPoint& screenPoint);
+    REFERENCE_TIME PositionFromOverlayPoint(int x, const CRect& trackRect) const;
     void PreviewWindowShow(const CPoint point);
+    // Show seek preview from an absolute media position supplied by an external control surface.
+    void PreviewWindowShowAt(REFERENCE_TIME rtPos, bool allowDragging = false);
+    void PreviewWindowShowAtOverlay(REFERENCE_TIME rtPos, const CPoint& screenPoint);
+    void ShowOverlayTooltip(REFERENCE_TIME rtPos, const CPoint& screenPoint);
+    void HideOverlayTooltip();
+    void ToggleOverlayPreview();
+    void HandleOverlayXButton(UINT nButton);
     void UpdateToolTipTextPreview(REFERENCE_TIME rtPos);
 
     void UpdateTime();

@@ -1955,6 +1955,14 @@ msgctxt "IDD_PPAGETHEME_IDC_CHECK10"
 msgid "Hide Windowed Controls"
 msgstr "隐藏窗口控件"
 
+msgctxt "IDD_PPAGETHEME_IDC_MODERNZ_CONTROLS"
+msgid "Use ModernZ control style"
+msgstr "使用 ModernZ 控制栏样式"
+
+msgctxt "IDD_PPAGETHEME_IDC_MODERNZ_AUTOHIDE"
+msgid "Auto-hide ModernZ controls"
+msgstr "自动隐藏 ModernZ 控件"
+
 msgctxt "IDD_PPAGETHEME_IDC_STATIC"
 msgid "Windows Integration"
 msgstr "Windows 集成"

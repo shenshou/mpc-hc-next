@@ -232,6 +232,7 @@ void CPlayerSeekBar::SyncThumbToVideo(REFERENCE_TIME rtPos, REFERENCE_TIME rtPos
             VERIFY(S_OK == m_pMainFrame->m_api.m_pTaskbarList->SetProgressValue(m_pMainFrame->m_hWnd, std::max(m_rtPos, 1ll), m_rtStop));
         }
     }
+    m_pMainFrame->RefreshModernZOverlay();
 }
 
 void CPlayerSeekBar::CreateThumb(bool bEnabled, CDC& parentDC)
@@ -501,8 +502,10 @@ void CPlayerSeekBar::UpdateTime()
     const int newEffWidth = TimeSectionEffectiveWidth();
     if (newEffWidth != oldEffWidth) {
         Invalidate(); // channel geometry changed (section appeared/disappeared or resized)
+        m_pMainFrame->UpdateModernZOverlay();
     } else if (textChanged) {
         InvalidateRect(GetTimeRect()); // same footprint, only the text changed
+        m_pMainFrame->RefreshModernZOverlay();
     }
 }
 
@@ -684,6 +687,7 @@ void CPlayerSeekBar::Enable(bool bEnable)
     if (bEnable != m_bEnabled) {
         m_bEnabled = bEnable;
         Invalidate();
+        m_pMainFrame->RefreshModernZOverlay();
     }
 }
 
@@ -731,6 +735,7 @@ void CPlayerSeekBar::SetRange(REFERENCE_TIME rtStart, REFERENCE_TIME rtStop)
             Invalidate();
         }
     }
+    m_pMainFrame->RefreshModernZOverlay();
 }
 
 REFERENCE_TIME CPlayerSeekBar::GetPos() const
@@ -772,6 +777,243 @@ void CPlayerSeekBar::RemoveChapters()
 bool CPlayerSeekBar::DraggingThumb()
 {
     return m_bDraggingThumb;
+}
+
+void CPlayerSeekBar::GetOverlayState(OverlayState& state) const
+{
+    state.enabled = m_bEnabled;
+    state.hasDuration = m_bHasDuration;
+    state.start = m_rtStart;
+    state.stop = m_rtStop;
+    state.position = m_rtPos;
+    state.drawPosition = m_rtPosDraw;
+}
+
+bool CPlayerSeekBar::BeginOverlayDrag()
+{
+    if (!m_bEnabled || !m_bHasDuration || m_rtStart >= m_rtStop || m_bDraggingThumb) {
+        return false;
+    }
+
+    pauseAfterFirstScroll = AfxGetAppSettings().bPauseWhileDraggingSeekbar
+                            && m_pMainFrame->GetMediaState() == State_Running;
+    pausedForScrolling = false;
+    m_lastDragSeekTickCount = GetTickCount64();
+    m_rtHoverPos = m_rtPosDraw;
+    m_bDraggingThumb = true;
+    m_bOverlayDragFirstUpdate = true;
+    return true;
+}
+
+void CPlayerSeekBar::UpdateOverlayDrag(REFERENCE_TIME rtPos)
+{
+    if (!m_bDraggingThumb || !m_bHasDuration) {
+        return;
+    }
+
+    const REFERENCE_TIME rtPosDraw = std::clamp(rtPos, m_rtStart, m_rtStop);
+    REFERENCE_TIME rtSeekPos = rtPosDraw;
+    const CAppSettings& s = AfxGetAppSettings();
+    const REFERENCE_TIME duration = m_rtStop - m_rtStart;
+    if (duration >= 600000000LL && s.bFastSeek && GetKeyState(VK_SHIFT) >= 0) {
+        const REFERENCE_TIME rtMaxDiff = s.bAllowInaccurateFastseek
+                                         ? 200000000LL
+                                         : std::min(100000000LL, duration / 30);
+        rtSeekPos = m_pMainFrame->GetClosestKeyFrame(rtSeekPos, rtMaxDiff, rtMaxDiff);
+    }
+
+    SyncThumbToVideo(rtSeekPos, rtPosDraw);
+    if (m_bOverlayDragFirstUpdate) {
+        m_bOverlayDragFirstUpdate = false;
+        CheckScrollDistance(CPoint(0, 0), 0LL, 0ULL);
+    } else {
+        CheckScrollDistance(CPoint(0, 0), std::min(5000000LL, m_rtStop / 30), 150LL);
+    }
+}
+
+void CPlayerSeekBar::DrawOverlay(CDC& dc, const CRect& bounds)
+{
+    if (bounds.IsRectEmpty()) {
+        return;
+    }
+
+    const COLORREF trackColor = RGB(76, 76, 82);
+    const COLORREF progressColor = RGB(255, 149, 0);
+    const COLORREF chapterColor = RGB(180, 180, 190);
+    const COLORREF abColor = RGB(245, 165, 70);
+
+    const int trackHeight = std::max<LONG>(2, m_pMainFrame->m_dpi.ScaleY(4));
+    CRect track(bounds);
+    track.top = bounds.CenterPoint().y - trackHeight / 2;
+    track.bottom = track.top + trackHeight;
+
+    auto fillRoundedRect = [&](const CRect& rect, COLORREF color) {
+        if (rect.IsRectEmpty()) {
+            return;
+        }
+        CRgn region;
+        if (region.CreateRoundRectRgn(rect.left, rect.top, rect.right, rect.bottom,
+                                      rect.Height(), rect.Height())) {
+            CBrush brush(color);
+            dc.FillRgn(&region, &brush);
+        }
+    };
+    fillRoundedRect(track, trackColor);
+
+    if (!m_bHasDuration || m_rtStart >= m_rtStop) {
+        return;
+    }
+
+    const REFERENCE_TIME duration = m_rtStop - m_rtStart;
+    auto pointFromPosition = [&](REFERENCE_TIME position) {
+        const REFERENCE_TIME clamped = std::clamp(position, m_rtStart, m_rtStop);
+        return bounds.left + static_cast<int>((static_cast<__int64>(bounds.Width())
+                                               * (clamped - m_rtStart)) / duration);
+    };
+
+    const int seekPos = pointFromPosition(m_rtPosDraw);
+    if (seekPos > bounds.left) {
+        CRect progress(track);
+        progress.right = std::min<LONG>(track.right, static_cast<LONG>(seekPos));
+        fillRoundedRect(progress, progressColor);
+    }
+
+    auto drawMarker = [&](REFERENCE_TIME position, COLORREF color) {
+        const int x = pointFromPosition(position);
+        const int markerWidth = std::max<LONG>(1, m_pMainFrame->m_dpi.ScaleX(1));
+        const int markerHeight = m_pMainFrame->m_dpi.ScaleY(8);
+        CRect marker(x, track.CenterPoint().y - markerHeight / 2,
+                     x + markerWidth, track.CenterPoint().y + (markerHeight + 1) / 2);
+        dc.FillSolidRect(&marker, color);
+    };
+
+    REFERENCE_TIME aPos = 0, bPos = 0;
+    if (m_pMainFrame->CheckABRepeat(aPos, bPos)) {
+        if (aPos) {
+            drawMarker(aPos, abColor);
+        }
+        if (bPos) {
+            drawMarker(bPos, abColor);
+        }
+    }
+
+    {
+        CAutoLock lock(&m_csChapterBag);
+        if (m_pChapterBag) {
+            for (DWORD i = 0; i < m_pChapterBag->ChapGetCount(); i++) {
+                REFERENCE_TIME chapterPosition = 0;
+                if (SUCCEEDED(m_pChapterBag->ChapGet(i, &chapterPosition, nullptr))) {
+                    drawMarker(chapterPosition, chapterColor);
+                }
+            }
+        }
+    }
+
+    if (m_bEnabled) {
+        const int thumbSize = std::max<LONG>(8, m_pMainFrame->m_dpi.ScaleY(12));
+        CRect thumb(0, 0, thumbSize, thumbSize);
+        thumb.MoveToXY(seekPos - thumbSize / 2, bounds.CenterPoint().y - thumbSize / 2);
+        CBrush brush(progressColor);
+        CPen pen(PS_SOLID, 1, progressColor);
+        CBrush* oldBrush = dc.SelectObject(&brush);
+        CPen* oldPen = dc.SelectObject(&pen);
+        dc.Ellipse(&thumb);
+        dc.SelectObject(oldPen);
+        dc.SelectObject(oldBrush);
+    }
+}
+
+int CPlayerSeekBar::GetOverlayTimeWidth() const
+{
+    return TimeSectionVisible()
+           ? TimeSectionEffectiveWidth() + m_pMainFrame->m_dpi.ScaleX(TIME_SECTION_GAP)
+           : 0;
+}
+
+bool CPlayerSeekBar::GetOverlayTimeLayout(const CRect& bounds, CRect& trackBounds, CRect& timeBounds) const
+{
+    trackBounds = bounds;
+    timeBounds.SetRectEmpty();
+    if (!TimeSectionVisible()) {
+        return false;
+    }
+
+    const int timeWidth = TimeSectionEffectiveWidth();
+    const int gap = m_pMainFrame->m_dpi.ScaleX(TIME_SECTION_GAP);
+    if (timeWidth <= 0 || bounds.Width() <= timeWidth + gap + m_pMainFrame->m_dpi.ScaleX(48)) {
+        return false;
+    }
+
+    if (TimeSectionOnLeft()) {
+        timeBounds.SetRect(bounds.left, bounds.top, bounds.left + timeWidth, bounds.bottom);
+        trackBounds.left = timeBounds.right + gap;
+    } else {
+        timeBounds.SetRect(bounds.right - timeWidth, bounds.top, bounds.right, bounds.bottom);
+        trackBounds.right = timeBounds.left - gap;
+    }
+    return true;
+}
+
+void CPlayerSeekBar::DrawOverlayTime(CDC& dc, const CRect& timeBounds) const
+{
+    if (timeBounds.IsRectEmpty() || !TimeSectionVisible()) {
+        return;
+    }
+
+    EnsureTimeFont();
+    CFont* pOldFont = dc.SelectObject(&m_timeFont);
+    const int oldBkMode = dc.SetBkMode(TRANSPARENT);
+    const COLORREF oldColor = dc.SetTextColor(RGB(235, 235, 240));
+    CRect textRect(timeBounds);
+    const int padding = m_pMainFrame->m_dpi.ScaleX(TIME_SECTION_PADDING);
+    const UINT align = TimeSectionOnLeft() ? DT_LEFT : DT_RIGHT;
+    if (TimeSectionOnLeft()) {
+        textRect.left += padding;
+    } else {
+        textRect.right -= padding;
+    }
+    dc.DrawText(m_timeText, textRect, align | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+    dc.SetTextColor(oldColor);
+    dc.SetBkMode(oldBkMode);
+    dc.SelectObject(pOldFont);
+}
+
+void CPlayerSeekBar::ShowOverlayTimeOptionsMenu(const CPoint& screenPoint)
+{
+    if (TimeSectionVisible()) {
+        m_pMainFrame->m_wndStatusBar.ShowTimerOptionsMenu(this, screenPoint);
+    }
+}
+
+REFERENCE_TIME CPlayerSeekBar::PositionFromOverlayPoint(int x, const CRect& bounds) const
+{
+    if (!m_bHasDuration || m_rtStart >= m_rtStop || bounds.Width() <= 0) {
+        return m_rtStart;
+    }
+
+    const LONG clampedX = std::clamp<LONG>(x, bounds.left, bounds.right);
+    return m_rtStart + static_cast<REFERENCE_TIME>(
+        (static_cast<__int64>(clampedX - bounds.left) * (m_rtStop - m_rtStart)) / bounds.Width());
+}
+
+void CPlayerSeekBar::EndOverlayDrag()
+{
+    if (!m_bDraggingThumb) {
+        return;
+    }
+
+    m_bDraggingThumb = false;
+    m_bOverlayDragFirstUpdate = false;
+    if (m_bHasDuration && m_rtStart < m_rtStop) {
+        CheckScrollDistance(CPoint(0, 0), std::min(2500000LL, m_rtStop / 100), 0LL);
+    }
+    pauseAfterFirstScroll = false;
+    if (pausedForScrolling) {
+        pausedForScrolling = false;
+        m_pMainFrame->MediaControlRun();
+    }
+    m_pMainFrame->PreviewWindowHide();
+    m_bIgnoreLastTooltipPoint = true;
 }
 
 BEGIN_MESSAGE_MAP(CPlayerSeekBar, CDialogBar)
@@ -817,7 +1059,91 @@ void CPlayerSeekBar::OnPaint()
     };
 
     const CAppSettings& s = AfxGetAppSettings();
-    if (AppIsThemeLoaded()) {
+    if (s.bModernZControls) {
+        const COLORREF backgroundColor = RGB(32, 32, 32);
+        const COLORREF trackColor = RGB(76, 76, 82);
+        const COLORREF progressColor = RGB(255, 149, 0);
+        const COLORREF chapterColor = RGB(180, 180, 190);
+        const COLORREF abColor = RGB(245, 165, 70);
+        CRect clientRect;
+        GetClientRect(&clientRect);
+        dc.FillSolidRect(&clientRect, backgroundColor);
+
+        const int trackHeight = std::max<LONG>(2, m_pMainFrame->m_dpi.ScaleY(4));
+        CRect trackRect(channelRect);
+        trackRect.top = channelRect.CenterPoint().y - trackHeight / 2;
+        trackRect.bottom = trackRect.top + trackHeight;
+
+        auto fillRoundedRect = [&](const CRect& rect, COLORREF color) {
+            if (rect.IsRectEmpty()) {
+                return;
+            }
+            CRgn region;
+            if (region.CreateRoundRectRgn(rect.left, rect.top, rect.right, rect.bottom,
+                                          rect.Height(), rect.Height())) {
+                CBrush brush(color);
+                dc.FillRgn(&region, &brush);
+            }
+        };
+
+        fillRoundedRect(trackRect, trackColor);
+
+        const int seekPos = ChannelPointFromPosition(m_rtPosDraw);
+        if (m_bHasDuration && seekPos > 0) {
+            CRect progressRect(trackRect);
+            progressRect.right = std::min(trackRect.right, trackRect.left + seekPos);
+            fillRoundedRect(progressRect, progressColor);
+        }
+
+        auto drawMarker = [&](REFERENCE_TIME pos, COLORREF color) {
+            const int x = channelRect.left + ChannelPointFromPosition(pos);
+            const int markerWidth = std::max<LONG>(1, m_pMainFrame->m_dpi.ScaleX(1));
+            const int markerHeight = m_pMainFrame->m_dpi.ScaleY(8);
+            CRect marker(x, trackRect.CenterPoint().y - markerHeight / 2,
+                         x + markerWidth, trackRect.CenterPoint().y + (markerHeight + 1) / 2);
+            dc.FillSolidRect(&marker, color);
+        };
+
+        if (m_bHasDuration) {
+            REFERENCE_TIME aPos, bPos;
+            if (m_pMainFrame->CheckABRepeat(aPos, bPos)) {
+                if (aPos) {
+                    drawMarker(aPos, abColor);
+                }
+                if (bPos) {
+                    drawMarker(bPos, abColor);
+                }
+            }
+
+            CAutoLock lock(&m_csChapterBag);
+            if (m_pChapterBag) {
+                for (DWORD i = 0; i < m_pChapterBag->ChapGetCount(); i++) {
+                    REFERENCE_TIME rtChapter;
+                    if (SUCCEEDED(m_pChapterBag->ChapGet(i, &rtChapter, nullptr))) {
+                        drawMarker(rtChapter, chapterColor);
+                    } else {
+                        ASSERT(FALSE);
+                    }
+                }
+            }
+        }
+
+        CRect thumbRect(GetThumbRect());
+        m_lastThumbRect = thumbRect;
+        if (m_bEnabled && m_bHasDuration) {
+            const int thumbSize = std::max<LONG>(8, m_pMainFrame->m_dpi.ScaleY(12));
+            CRect thumb(0, 0, thumbSize, thumbSize);
+            thumb.MoveToXY(channelRect.left + seekPos - thumbSize / 2,
+                           channelRect.CenterPoint().y - thumbSize / 2);
+            CBrush brush(progressColor);
+            CPen pen(PS_SOLID, 1, progressColor);
+            CBrush* oldBrush = dc.SelectObject(&brush);
+            CPen* oldPen = dc.SelectObject(&pen);
+            dc.Ellipse(&thumb);
+            dc.SelectObject(oldPen);
+            dc.SelectObject(oldBrush);
+        }
+    } else if (AppIsThemeLoaded()) {
         // Thumb
         CRect r(GetThumbRect());
         m_lastThumbRect = r;
@@ -1191,18 +1517,125 @@ void CPlayerSeekBar::PreviewWindowShow(CPoint point) {
         m_bIgnoreLastTooltipPoint = false;
         m_last_pointx_preview = point.x;
         if (m_pMainFrame->CanPreviewUse()) {
-            REFERENCE_TIME newpos = std::clamp(PositionFromClientPoint(point), 0LL, m_rtStop);
-            if (newpos != m_pos_preview) {
-                if (GetKeyState(VK_SHIFT) >= 0) {
-                    newpos = m_pMainFrame->GetClosestKeyFramePreview(newpos);
-                }
-            }
-            if (newpos != m_pos_preview || !m_pMainFrame->m_wndPreView.IsWindowVisible()) {
-                m_pos_preview = newpos;
-                UpdateToolTipTextPreview(m_pos_preview);
-                m_pMainFrame->PreviewWindowShow(m_pos_preview);
-            }
+            PreviewWindowShowAt(PositionFromClientPoint(point));
         }
+    }
+}
+
+void CPlayerSeekBar::ToggleOverlayPreview()
+{
+    if (m_pMainFrame->m_wndPreView && ::IsWindow(m_pMainFrame->m_wndPreView)) {
+        if (m_pMainFrame->m_bUseSeekPreview) {
+            if (m_pMainFrame->m_wndPreView.IsWindowVisible()) {
+                m_pMainFrame->PreviewWindowHide();
+            }
+            m_pMainFrame->m_bUseSeekPreview = false;
+        } else {
+            m_pMainFrame->m_bUseSeekPreview = (m_pMainFrame->m_previewGraph.m_pGB != nullptr);
+        }
+    }
+}
+
+void CPlayerSeekBar::HandleOverlayXButton(UINT nButton)
+{
+    if (DraggingThumb()) {
+        return;
+    }
+    switch (nButton) {
+        case XBUTTON1:
+            SendMessage(WM_COMMAND, ID_PLAY_SEEKBACKWARDMED);
+            break;
+        case XBUTTON2:
+            SendMessage(WM_COMMAND, ID_PLAY_SEEKFORWARDMED);
+            break;
+    }
+}
+
+void CPlayerSeekBar::PreviewWindowShowAtOverlay(REFERENCE_TIME rtPos, const CPoint& screenPoint)
+{
+    if (!m_bHasDuration || !m_pMainFrame->CanPreviewUse()) {
+        return;
+    }
+
+    if (!m_pMainFrame->m_wndPreView.IsWindowVisible()) {
+        m_pMainFrame->m_wndPreView.SetWindowSize();
+    }
+
+    CRect previewRect;
+    m_pMainFrame->m_wndPreView.GetWindowRect(&previewRect);
+
+    MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+    GetMonitorInfoW(MonitorFromPoint(screenPoint, MONITOR_DEFAULTTONEAREST), &monitorInfo);
+
+    CPoint position(screenPoint);
+    position.x -= previewRect.Width() / 2 - 2;
+    const bool showBelow = AfxGetAppSettings().nHoverPosition == TIME_TOOLTIP_BELOW_SEEKBAR
+                           && monitorInfo.rcWork.bottom > screenPoint.y + 8 + previewRect.Height();
+    position.y = showBelow ? screenPoint.y + 8 : screenPoint.y - previewRect.Height() - 13;
+    position.x = std::max(monitorInfo.rcWork.left + 5,
+                          std::min(position.x, monitorInfo.rcWork.right - previewRect.Width() - 5));
+    position.y = std::max(monitorInfo.rcWork.top + 5,
+                          std::min(position.y, monitorInfo.rcWork.bottom - previewRect.Height() - 5));
+
+    m_pMainFrame->m_wndPreView.SetWindowPos(&wndTopMost, position.x, position.y, 0, 0,
+                                             SWP_NOSIZE | SWP_NOACTIVATE);
+    PreviewWindowShowAt(rtPos, DraggingThumb());
+}
+
+void CPlayerSeekBar::ShowOverlayTooltip(REFERENCE_TIME rtPos, const CPoint& screenPoint)
+{
+    if (!m_bHasDuration || m_pMainFrame->CanPreviewUse() || !m_tooltip.GetSafeHwnd()) {
+        return;
+    }
+
+    KillTimer(TIMER_SHOWHIDE_TOOLTIP);
+    HideToolTip();
+    GenerateToolTipText(rtPos);
+    m_ti.lpszText = (LPTSTR)(LPCTSTR)m_tooltipText;
+    m_tooltip.SetToolInfo(&m_ti);
+
+    const CSize bubbleSize(m_tooltip.GetBubbleSize(&m_ti));
+    MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+    GetMonitorInfoW(MonitorFromPoint(screenPoint, MONITOR_DEFAULTTONEAREST), &monitorInfo);
+
+    CPoint position(screenPoint);
+    if (AfxGetAppSettings().nHoverPosition == TIME_TOOLTIP_ABOVE_SEEKBAR) {
+        position.x -= bubbleSize.cx / 2 - 2;
+        position.y -= bubbleSize.cy + m_pMainFrame->m_dpi.ScaleY(13);
+    } else {
+        position.x += m_pMainFrame->m_dpi.ScaleX(10);
+        position.y += m_pMainFrame->m_dpi.ScaleY(20);
+    }
+    position.x = std::max(monitorInfo.rcWork.left + 5,
+                          std::min(position.x, monitorInfo.rcWork.right - bubbleSize.cx - 5));
+    position.y = std::max(monitorInfo.rcWork.top + 5,
+                          std::min(position.y, monitorInfo.rcWork.bottom - bubbleSize.cy - 5));
+
+    m_tooltip.SendMessage(TTM_TRACKPOSITION, 0, MAKELPARAM(position.x, position.y));
+    m_tooltip.SendMessage(TTM_TRACKACTIVATE, TRUE, (LPARAM)&m_ti);
+    m_tooltipState = TOOLTIP_VISIBLE;
+}
+
+void CPlayerSeekBar::HideOverlayTooltip()
+{
+    HideToolTip();
+}
+
+void CPlayerSeekBar::PreviewWindowShowAt(REFERENCE_TIME rtPos, bool allowDragging)
+{
+    if ((DraggingThumb() && !allowDragging) || !m_pMainFrame->CanPreviewUse()) {
+        return;
+    }
+
+    REFERENCE_TIME newpos = std::clamp(rtPos, m_rtStart, m_rtStop);
+    if (newpos != m_pos_preview && GetKeyState(VK_SHIFT) >= 0) {
+        newpos = m_pMainFrame->GetClosestKeyFramePreview(newpos);
+    }
+
+    if (newpos != m_pos_preview || !m_pMainFrame->m_wndPreView.IsWindowVisible()) {
+        m_pos_preview = newpos;
+        UpdateToolTipTextPreview(m_pos_preview);
+        m_pMainFrame->PreviewWindowShow(m_pos_preview);
     }
 }
 

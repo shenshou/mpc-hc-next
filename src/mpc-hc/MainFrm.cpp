@@ -86,6 +86,7 @@
 #include <SyncAllocatorPresenter.h>
 
 #include "FullscreenWnd.h"
+#include "ModernZOverlay.h"
 #include "Monitors.h"
 
 #include <WinAPIUtils.h>
@@ -1086,6 +1087,8 @@ LRESULT CMainFrame::OnLAVPropPageCallback(WPARAM, LPARAM lParam)
 
 void CMainFrame::OnDestroy()
 {
+    m_pModernZOverlay.reset();
+
     WTSUnRegisterSessionNotification();
     ShowTrayIcon(false);
     m_dropTarget.Revoke();
@@ -1817,6 +1820,118 @@ void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
     OSDBarSetPos();
 }
 
+void CMainFrame::UpdatePlayerUIAppearance()
+{
+    if (m_wndSeekBar.GetSafeHwnd()) {
+        m_wndSeekBar.Invalidate();
+    }
+    if (m_wndToolBar.GetSafeHwnd()) {
+        m_wndToolBar.Invalidate();
+        if (m_wndToolBar.m_volctrl.GetSafeHwnd()) {
+            m_wndToolBar.m_volctrl.Invalidate();
+        }
+    }
+    UpdateModernZOverlay();
+}
+
+
+void CMainFrame::UpdateModernZOverlay()
+{
+    if (m_bUpdatingModernZOverlay) {
+        return;
+    }
+
+    struct UpdateGuard {
+        bool& flag;
+        explicit UpdateGuard(bool& value) : flag(value) { flag = true; }
+        ~UpdateGuard() { flag = false; }
+    } guard(m_bUpdatingModernZOverlay);
+
+    const CAppSettings& settings = AfxGetAppSettings();
+    const bool supported = IsWindows8OrGreater()
+                           && settings.bModernZControls
+                           && GetLoadState() == MLS::LOADED
+                           && !m_fAudioOnly
+                           && (settings.nCS & (CS_SEEKBAR | CS_TOOLBAR)) == (CS_SEEKBAR | CS_TOOLBAR)
+                           && IsWindowVisible()
+                           && m_pVideoWnd
+                           && ::IsWindow(m_pVideoWnd->GetSafeHwnd())
+                           && ::IsWindow(m_wndSeekBar.GetSafeHwnd())
+                           && ::IsWindow(m_wndToolBar.GetSafeHwnd())
+                           && ::IsWindow(m_wndToolBar.m_volctrl.GetSafeHwnd())
+                           && !IsD3DFullScreenMode()
+                           && !IsFullScreenMainFrameExclusiveMPCVR()
+                           && !m_graph.m_pMVRC
+                           && m_OSD.GetOSDType() != OSD_TYPE_BITMAP;
+
+    if (!supported) {
+        m_bModernZOverlayActive = false;
+        if (m_pModernZOverlay) {
+            m_pModernZOverlay->SetBounds(CRect());
+        }
+        m_controls.SetModernZControlsHidden(false);
+        return;
+    }
+
+    if (!m_pModernZOverlay) {
+        m_pModernZOverlay = std::make_unique<CModernZOverlay>(this, &m_wndSeekBar, &m_wndToolBar);
+    }
+
+    if (!m_pModernZOverlay->Bind(m_pVideoWnd)) {
+        m_bModernZOverlayActive = false;
+        m_controls.SetModernZControlsHidden(false);
+        return;
+    }
+
+    m_pModernZOverlay->SetAutoHide(settings.bModernZAutoHide);
+    const bool ready = !m_modernZVideoRect.IsRectEmpty()
+                       && m_pModernZOverlay->SetBounds(m_modernZVideoRect)
+                       && m_pModernZOverlay->IsReady();
+    m_bModernZOverlayActive = ready;
+    m_controls.SetModernZControlsHidden(ready);
+
+    // Hiding the native controls can resize the video view and recalculate
+    // m_modernZVideoRect. MoveVideoWindow() may run during that layout change,
+    // but its nested UpdateModernZOverlay() is intentionally blocked by the
+    // update guard above. Re-apply the final geometry after the layout settles.
+    if (ready) {
+        const bool layoutReady = !m_modernZVideoRect.IsRectEmpty()
+                                 && m_pModernZOverlay->SetBounds(m_modernZVideoRect)
+                                 && m_pModernZOverlay->IsReady();
+        if (!layoutReady) {
+            m_bModernZOverlayActive = false;
+            m_controls.SetModernZControlsHidden(false);
+        }
+    }
+}
+
+void CMainFrame::OnModernZOverlayUnavailable()
+{
+    m_bModernZOverlayActive = false;
+    m_controls.SetModernZControlsHidden(false);
+}
+
+void CMainFrame::NotifyModernZOverlayMouseMove(const CPoint& screenPoint)
+{
+    if (m_pModernZOverlay) {
+        m_pModernZOverlay->NotifyVideoMouseMove(screenPoint);
+    }
+}
+
+void CMainFrame::NotifyModernZOverlayMouseLeave()
+{
+    if (m_pModernZOverlay) {
+        m_pModernZOverlay->NotifyVideoMouseLeave();
+    }
+}
+
+void CMainFrame::RefreshModernZOverlay()
+{
+    if (m_pModernZOverlay) {
+        m_pModernZOverlay->Refresh();
+    }
+}
+
 void CMainFrame::OnSize(UINT nType, int cx, int cy)
 {
     if (nType == SIZE_MINIMIZED) {
@@ -2142,6 +2257,7 @@ LRESULT CMainFrame::OnDpiChanged(WPARAM wParam, LPARAM lParam)
     ReloadMenus();
 
     RecalcLayout();
+    UpdateModernZOverlay();
     m_wndPreView.ScaleFont();
     return 0;
 }
@@ -3769,6 +3885,7 @@ void CMainFrame::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
     }
 
     __super::OnHScroll(nSBCode, nPos, pScrollBar);
+    RefreshModernZOverlay();
 }
 
 void CMainFrame::RestoreFocus() {
@@ -6535,7 +6652,7 @@ void CMainFrame::OnViewControlBar(UINT nID)
 void CMainFrame::OnUpdateViewControlBar(CCmdUI* pCmdUI)
 {
     const UINT nID = pCmdUI->m_nID - ID_VIEW_SEEKER;
-    pCmdUI->SetCheck(m_controls.ControlChecked(static_cast<CMainFrameControls::Toolbar>(nID)));
+    pCmdUI->SetCheck(m_controls.ControlConfigured(static_cast<CMainFrameControls::Toolbar>(nID)));
     if (pCmdUI->m_nID == ID_VIEW_SEEKER) {
         pCmdUI->Enable(!IsPlaybackCaptureMode());
     }
@@ -9822,13 +9939,32 @@ void CMainFrame::MoveVideoWindow(bool fShowStats/* = false*/, bool bSetStoppedVi
             m_wndView.SetVideoRect(&windowRect);
         }
 
+        m_modernZVideoRect = videoRect;
+        m_modernZVideoRect.OffsetRect(windowRect.TopLeft());
+        if (m_pVideoWnd && ::IsWindow(m_pVideoWnd->GetSafeHwnd())) {
+            CRect videoClientRect;
+            m_pVideoWnd->GetClientRect(&videoClientRect);
+            CRect clippedVideoRect;
+            if (clippedVideoRect.IntersectRect(videoClientRect, m_modernZVideoRect)) {
+                m_modernZVideoRect = clippedVideoRect;
+            } else {
+                m_modernZVideoRect.SetRectEmpty();
+            }
+        } else {
+            m_modernZVideoRect.SetRectEmpty();
+        }
         // the bitmap OSD is sized to the renderer's window, which can change without a WM_SIZE of the view
         if (m_OSD.GetOSDType() == OSD_TYPE_BITMAP) {
             m_OSD.OnSize(SIZE_RESTORED, windowRect.Width(), windowRect.Height());
         }
     } else {
         m_wndView.SetVideoRect();
+        m_modernZVideoRect.SetRectEmpty();
+        if (m_pModernZOverlay) {
+            m_pModernZOverlay->SetBounds(CRect());
+        }
     }
+    UpdateModernZOverlay();
 }
 
 void CMainFrame::SetPreviewVideoPosition() {
@@ -16116,6 +16252,7 @@ void CMainFrame::UpdateControlState(UpdateControlTarget target)
         default:
             ASSERT(FALSE);
     }
+    RefreshModernZOverlay();
 }
 
 void CMainFrame::ReloadMenus() {

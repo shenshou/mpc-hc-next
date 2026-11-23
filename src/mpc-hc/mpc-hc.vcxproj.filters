@@ -405,6 +405,9 @@
       <Filter>Graph</Filter>
     </ClCompile>
     <ClCompile Include="EventDispatcher.cpp" />
+    <ClCompile Include="ModernZOverlay.cpp">
+      <Filter>Toolbars</Filter>
+    </ClCompile>
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="MainFrmControls.cpp" />
     <ClCompile Include="Snapshot.cpp" />
@@ -1003,6 +1006,9 @@
     </ClInclude>
     <ClInclude Include="EventDispatcher.h" />
     <ClInclude Include="MainFrm.h" />
+    <ClInclude Include="ModernZOverlay.h">
+      <Filter>Toolbars</Filter>
+    </ClInclude>
     <ClInclude Include="MainFrmControls.h" />
     <ClInclude Include="Snapshot.h" />
     <ClInclude Include="CaptureController.h" />

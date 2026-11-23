@@ -651,6 +651,7 @@ void CMouse::InternalOnMouseMove(UINT nFlags, const CPoint& point)
 {
     CPoint screenPoint(point);
     GetWnd().ClientToScreen(&screenPoint);
+    m_pMainFrame->NotifyModernZOverlayMouseMove(screenPoint);
 
     if (!TestDrag(screenPoint) && !m_pMainFrame->IsInteractiveVideo()) {
         if (!m_bTrackingMouseLeave) {
@@ -678,6 +679,7 @@ void CMouse::InternalOnMouseLeave()
             }
         }
     }
+    m_pMainFrame->NotifyModernZOverlayMouseLeave();
     StopMouseHider();
     m_bTrackingMouseLeave = false;
     m_cursor = Cursor::ARROW;

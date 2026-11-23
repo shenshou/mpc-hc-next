@@ -115,6 +115,16 @@ public:
     CImage& GetVolumeImageOn() { return volumeOn; };
     CImage& GetVolumeImageOff() { return volumeOff; };
 
+    // Read-only toolbar snapshot and drawing hooks for an external ModernZ overlay.
+    int GetOverlayButtonCount() const;
+    bool GetOverlayButton(int index, TBBUTTON& button) const;
+    bool GetOverlayButtonRect(int index, CRect& rect) const;
+    bool GetOverlayButtonTooltipText(UINT command, CString& text) const;
+    void DispatchOverlayButton(UINT command, int buttonIndex, const CRect& screenRect, bool rightClick = false);
+    bool DrawOverlayButton(CDC& dc, int index, const CRect& rect, bool hot, bool pressed) const;
+    void DrawOverlayVolume(CDC& dc, const CRect& bounds) const;
+    void SetOverlayVolumeFromPoint(int x, const CRect& trackRect);
+
     CVolumeCtrl m_volctrl;
 
     std::optional<bool> lastFullscreen = std::nullopt;

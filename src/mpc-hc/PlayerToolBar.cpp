@@ -672,6 +672,7 @@ void CPlayerToolBar::SetMute(bool fMute) {
     bi.iImage = VOLUMEBUTTON_SVG_INDEX + (fMute ? 1:0);
     tb.SetButtonInfo(ID_VOLUME_MUTE, &bi);
     AfxGetAppSettings().fMute = fMute;
+    m_pMainFrame->RefreshModernZOverlay();
 }
 
 void CPlayerToolBar::ToggleButton(int buttonID, bool isActive, std::optional<bool> &lastBool) {
@@ -687,6 +688,7 @@ void CPlayerToolBar::ToggleButton(int buttonID, bool isActive, std::optional<boo
         }
         tb.SetButtonInfo(buttonID, &bi);
         lastBool = isActive;
+        m_pMainFrame->RefreshModernZOverlay();
     }
 }
 
@@ -737,6 +739,7 @@ int CPlayerToolBar::GetMinWidth() const
 void CPlayerToolBar::SetVolume(int volume)
 {
     m_volctrl.SetPosInternal(volume);
+    m_pMainFrame->RefreshModernZOverlay();
 }
 
 void CPlayerToolBar::EventCallback(MpcEvent ev)
@@ -799,7 +802,7 @@ END_MESSAGE_MAP()
 
 // CPlayerToolBar message handlers
 
-void drawButtonBG(NMCUSTOMDRAW nmcd, COLORREF c)
+void drawButtonBG(NMCUSTOMDRAW nmcd, COLORREF c, bool rounded)
 {
     CDC dc;
     dc.Attach(nmcd.hdc);
@@ -807,14 +810,23 @@ void drawButtonBG(NMCUSTOMDRAW nmcd, COLORREF c)
     br.CopyRect(&nmcd.rc);
     //adipose: remove the below code.  it is no longer necessary due to TBCDRF_NOOFFSET
     //and redesigning toolbar icons to be centered vs the old MFC style of "upper left" alignment
-    //br.DeflateRect(0, 0, 1, 1); //we aren't offsetting button when pressed, so try to center better
+    //br.DeflateRect(0, 0, 1, 1); //we aren't offsetting the button when pressed, so try to center better
 
-    dc.FillSolidRect(br, c);
-
-    CBrush fb;
-    fb.CreateSolidBrush(CMPCTheme::PlayerButtonBorderColor);
-    dc.FrameRect(br, &fb);
-    fb.DeleteObject();
+    if (rounded) {
+        CBrush fillBrush(c);
+        const COLORREF borderColor = AppIsThemeLoaded() ? CMPCTheme::PlayerButtonBorderColor : RGB(54, 54, 60);
+        CPen borderPen(PS_SOLID, 1, borderColor);
+        CBrush* oldBrush = dc.SelectObject(&fillBrush);
+        CPen* oldPen = dc.SelectObject(&borderPen);
+        dc.RoundRect(br, CPoint(br.Height(), br.Height()));
+        dc.SelectObject(oldPen);
+        dc.SelectObject(oldBrush);
+    } else {
+        dc.FillSolidRect(br, c);
+        CBrush borderBrush;
+        borderBrush.CreateSolidBrush(CMPCTheme::PlayerButtonBorderColor);
+        dc.FrameRect(br, &borderBrush);
+    }
     dc.Detach();
 }
 
@@ -822,6 +834,13 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
 {
     LPNMTBCUSTOMDRAW pTBCD = reinterpret_cast<LPNMTBCUSTOMDRAW>(pNMHDR);
     LRESULT lr = CDRF_DODEFAULT;
+    const bool bMpcThemeLoaded = AppIsThemeLoaded();
+    const bool bModernZ = AfxGetAppSettings().bModernZControls;
+    const bool bUseModernStyle = bMpcThemeLoaded || bModernZ;
+    const COLORREF playerBGColor = bModernZ ? RGB(32, 32, 32) : bMpcThemeLoaded ? CMPCTheme::PlayerBGColor : RGB(32, 32, 32);
+    const COLORREF buttonCheckedColor = bModernZ ? RGB(66, 66, 72) : bMpcThemeLoaded ? CMPCTheme::PlayerButtonCheckedColor : RGB(66, 66, 72);
+    const COLORREF buttonClickedColor = bModernZ ? RGB(55, 55, 61) : bMpcThemeLoaded ? CMPCTheme::PlayerButtonClickedColor : RGB(55, 55, 61);
+    const COLORREF buttonHotColor = bModernZ ? RGB(45, 45, 51) : bMpcThemeLoaded ? CMPCTheme::PlayerButtonHotColor : RGB(45, 45, 51);
 
     switch (pTBCD->nmcd.dwDrawStage) {
         case CDDS_PREERASE:
@@ -834,8 +853,8 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
             dc.Attach(pTBCD->nmcd.hdc);
             RECT r;
             GetClientRect(&r);
-            if (AppIsThemeLoaded()) {
-                dc.FillSolidRect(&r, CMPCTheme::PlayerBGColor);
+            if (bUseModernStyle) {
+                dc.FillSolidRect(&r, playerBGColor);
             } else {
                 dc.FillSolidRect(&r, ::GetSysColor(COLOR_BTNFACE));
             }
@@ -846,15 +865,15 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
         case CDDS_ITEMPREPAINT:
             lr |= CDRF_NOTIFYPOSTPAINT | TBCDRF_NOOFFSET;
             {
-                if (AppIsThemeLoaded()) {
+                if (bUseModernStyle) {
                     lr |= TBCDRF_NOBACKGROUND;
                     
                     if (pTBCD->nmcd.uItemState & CDIS_CHECKED) {
-                        drawButtonBG(pTBCD->nmcd, CMPCTheme::PlayerButtonCheckedColor);
+                        drawButtonBG(pTBCD->nmcd, buttonCheckedColor, AfxGetAppSettings().bModernZControls);
                     } else if (pTBCD->nmcd.uItemState & CDIS_SELECTED) { //pressed
-                        drawButtonBG(pTBCD->nmcd, CMPCTheme::PlayerButtonClickedColor);
+                        drawButtonBG(pTBCD->nmcd, buttonClickedColor, AfxGetAppSettings().bModernZControls);
                     } else if (pTBCD->nmcd.uItemState & CDIS_HOT) {
-                        drawButtonBG(pTBCD->nmcd, CMPCTheme::PlayerButtonHotColor);
+                        drawButtonBG(pTBCD->nmcd, buttonHotColor, AfxGetAppSettings().bModernZControls);
                     }
                 }
             }
@@ -865,15 +884,15 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
             dc.Attach(pTBCD->nmcd.hdc);
             RECT r;
             GetItemRect(dummySeparatorIndex, &r);
-            if (AppIsThemeLoaded()) {
-                dc.FillSolidRect(&r, CMPCTheme::PlayerBGColor);
+            if (bUseModernStyle) {
+                dc.FillSolidRect(&r, playerBGColor);
             } else {
                 dc.FillSolidRect(&r, GetSysColor(COLOR_BTNFACE));
             }
             // Also hide the left separator
             GetItemRect(leftSeparatorIndex, &r);
-            if (AppIsThemeLoaded()) {
-                dc.FillSolidRect(&r, CMPCTheme::PlayerBGColor);
+            if (bUseModernStyle) {
+                dc.FillSolidRect(&r, playerBGColor);
             } else {
                 dc.FillSolidRect(&r, GetSysColor(COLOR_BTNFACE));
             }
@@ -883,6 +902,272 @@ void CPlayerToolBar::OnCustomDraw(NMHDR* pNMHDR, LRESULT* pResult)
     }
 
     *pResult = lr;
+}
+
+int CPlayerToolBar::GetOverlayButtonCount() const
+{
+    return const_cast<CPlayerToolBar*>(this)->GetToolBarCtrl().GetButtonCount();
+}
+
+bool CPlayerToolBar::GetOverlayButton(int index, TBBUTTON& button) const
+{
+    CToolBarCtrl& toolbar = const_cast<CPlayerToolBar*>(this)->GetToolBarCtrl();
+    if (index < 0 || index >= toolbar.GetButtonCount() || !toolbar.GetButton(index, &button)) {
+        return false;
+    }
+    return (button.fsState & TBSTATE_HIDDEN) == 0;
+}
+
+bool CPlayerToolBar::GetOverlayButtonTooltipText(UINT command, CString& text) const
+{
+    CToolBarCtrl& toolbar = const_cast<CPlayerToolBar*>(this)->GetToolBarCtrl();
+    TBBUTTONINFO buttonInfo = {};
+    buttonInfo.cbSize = sizeof(buttonInfo);
+    buttonInfo.dwMask = TBIF_IMAGE;
+    if (toolbar.GetButtonInfo(command, &buttonInfo) == -1) {
+        return false;
+    }
+
+    const auto& settings = AfxGetAppSettings();
+    if (command != ID_VOLUME_MUTE) {
+        const auto commandIt = settings.CommandIDToWMCMD.find(command);
+        if (commandIt != settings.CommandIDToWMCMD.end()) {
+            text.LoadStringW(commandIt->second->dwname);
+        } else {
+            const auto svgIt = supportedSvgButtons.find(static_cast<WORD>(command));
+            if (svgIt == supportedSvgButtons.end() || !svgIt->second.strID) {
+                return false;
+            }
+            const auto& info = svgIt->second;
+            text.LoadStringW(buttonInfo.iImage == info.svgIndex && info.activeStrID
+                             ? info.activeStrID : info.strID);
+        }
+    } else if (buttonInfo.iImage == VOLUMEBUTTON_SVG_INDEX) {
+        text.LoadStringW(ID_VOLUME_MUTE);
+    } else if (buttonInfo.iImage == VOLUMEBUTTON_SVG_INDEX + 1) {
+        text.LoadStringW(ID_VOLUME_MUTE_OFF);
+    } else {
+        return false;
+    }
+
+    return !text.IsEmpty();
+}
+
+bool CPlayerToolBar::GetOverlayButtonRect(int index, CRect& rect) const
+{
+    TBBUTTON button = {};
+    if (!GetOverlayButton(index, button)) {
+        return false;
+    }
+
+    CToolBarCtrl& toolbar = const_cast<CPlayerToolBar*>(this)->GetToolBarCtrl();
+    return toolbar.GetItemRect(index, &rect) != FALSE;
+}
+
+void CPlayerToolBar::DispatchOverlayButton(UINT command, int buttonIndex, const CRect& screenRect, bool rightClick)
+{
+    if (!::IsWindow(m_hWnd) || command == 0) {
+        return;
+    }
+
+    auto showMenuAtOverlay = [&](UINT menuCommand, UINT mouseButtonSource) {
+        CToolBarCtrl& toolbar = GetToolBarCtrl();
+        toolbar.PressButton(command, TRUE);
+        m_pMainFrame->ToolbarContextMenu(menuCommand, buttonIndex, CRect(screenRect));
+        toolbar.PressButton(command, FALSE);
+        UNREFERENCED_PARAMETER(mouseButtonSource);
+    };
+
+    if (!rightClick) {
+        if (command == ID_AUDIOS || command == ID_SUBTITLES) {
+            showMenuAtOverlay(command, VK_LBUTTON);
+            return;
+        }
+        if (command >= ID_CUSTOM_ACTION1 && command <= ID_CUSTOM_ACTION4) {
+            const UINT customCommand = CustomToCMD(command, VK_LBUTTON);
+            if (CmdIsMenu(customCommand)) {
+                showMenuAtOverlay(customCommand, VK_LBUTTON);
+            } else {
+                m_pMainFrame->PostMessage(WM_COMMAND, customCommand);
+            }
+            return;
+        }
+        if (CmdIsMenu(command)) {
+            showMenuAtOverlay(command, VK_LBUTTON);
+            return;
+        }
+
+        // Route remaining commands through the toolbar's existing command map.
+        SendMessage(WM_COMMAND, MAKEWPARAM(command, 0));
+        return;
+    }
+
+    UINT messageId = 0;
+    switch (command) {
+        case ID_PLAY_PLAY:
+            messageId = ID_FILE_OPENMEDIA;
+            break;
+        case ID_PLAY_FRAMESTEP:
+            messageId = ID_PLAY_FRAMESTEP_BACK;
+            break;
+        case ID_PLAY_STOP:
+            messageId = ID_FILE_CLOSE_AND_RESTORE;
+            break;
+        case ID_NAVIGATE_SKIPFORWARD:
+            messageId = ID_NAVIGATE_SKIPFORWARDFILE;
+            break;
+        case ID_NAVIGATE_SKIPBACK:
+            messageId = ID_NAVIGATE_SKIPBACKFILE;
+            break;
+        case ID_VOLUME_MUTE:
+            messageId = ID_STREAM_AUDIO_NEXT;
+            break;
+        case ID_CUSTOM_ACTION1:
+        case ID_CUSTOM_ACTION2:
+        case ID_CUSTOM_ACTION3:
+        case ID_CUSTOM_ACTION4:
+            messageId = CustomToCMD(command, VK_RBUTTON);
+            break;
+    }
+
+    if (messageId > 0) {
+        if (CmdIsMenu(messageId)) {
+            showMenuAtOverlay(messageId, VK_RBUTTON);
+        } else {
+            m_pMainFrame->PostMessage(WM_COMMAND, messageId);
+        }
+    }
+}
+
+bool CPlayerToolBar::DrawOverlayButton(CDC& dc, int index, const CRect& rect, bool hot, bool pressed) const
+{
+    TBBUTTON button = {};
+    if (rect.IsRectEmpty() || !GetOverlayButton(index, button)
+            || (button.fsStyle & TBSTYLE_SEP) || button.idCommand == ID_VOLUME_MUTE
+            || button.iBitmap < 0) {
+        return false;
+    }
+
+    const bool enabled = (button.fsState & TBSTATE_ENABLED) != 0;
+    const bool checked = (button.fsState & TBSTATE_CHECKED) != 0;
+    const bool bModernZ = AfxGetAppSettings().bModernZControls;
+    if (bModernZ && (checked || (enabled && (hot || pressed)))) {
+        const COLORREF color = pressed ? RGB(55, 55, 61)
+                                       : checked ? RGB(66, 66, 72)
+                                                 : RGB(45, 45, 51);
+        CBrush brush(color);
+        CPen pen(PS_NULL, 0, color);
+        CBrush* oldBrush = dc.SelectObject(&brush);
+        CPen* oldPen = dc.SelectObject(&pen);
+        CRect background(rect);
+        background.DeflateRect(1, 1);
+        dc.RoundRect(&background, CPoint(m_pMainFrame->m_dpi.ScaleX(6), m_pMainFrame->m_dpi.ScaleY(6)));
+        dc.SelectObject(oldPen);
+        dc.SelectObject(oldBrush);
+    }
+
+    CImageList* imageList = enabled ? m_pButtonsImages.get() : m_pDisabledButtonsImages.get();
+    if (!imageList || !imageList->GetSafeHandle()) {
+        imageList = m_pButtonsImages.get();
+    }
+    if (!imageList || !imageList->GetSafeHandle()) {
+        return false;
+    }
+
+    int imageWidth = 0;
+    int imageHeight = 0;
+    if (!ImageList_GetIconSize(imageList->GetSafeHandle(), &imageWidth, &imageHeight)
+            || imageWidth <= 0 || imageHeight <= 0) {
+        return false;
+    }
+
+    const int x = rect.left + (rect.Width() - imageWidth) / 2;
+    const int y = rect.top + (rect.Height() - imageHeight) / 2;
+    return ImageList_Draw(imageList->GetSafeHandle(), button.iBitmap, dc.GetSafeHdc(), x, y, ILD_TRANSPARENT) != FALSE;
+}
+
+void CPlayerToolBar::DrawOverlayVolume(CDC& dc, const CRect& bounds) const
+{
+    if (bounds.IsRectEmpty()) {
+        return;
+    }
+
+    const int iconSize = std::min(bounds.Height(), m_pMainFrame->m_dpi.ScaleY(18));
+    const int iconY = bounds.CenterPoint().y - iconSize / 2;
+    CToolBarCtrl& toolbar = const_cast<CPlayerToolBar*>(this)->GetToolBarCtrl();
+    TBBUTTONINFO buttonInfo = {};
+    buttonInfo.cbSize = sizeof(buttonInfo);
+    buttonInfo.dwMask = TBIF_IMAGE;
+    if (m_pButtonsImages && m_pButtonsImages->GetSafeHandle()
+            && toolbar.GetButtonInfo(ID_VOLUME_MUTE, &buttonInfo) != -1
+            && buttonInfo.iImage >= 0 && buttonInfo.iImage < m_pButtonsImages->GetImageCount()) {
+        HICON volumeIcon = ImageList_GetIcon(m_pButtonsImages->GetSafeHandle(), buttonInfo.iImage, ILD_TRANSPARENT);
+        if (volumeIcon) {
+            DrawIconEx(dc.GetSafeHdc(), bounds.left, iconY, volumeIcon, iconSize, iconSize, 0, nullptr, DI_NORMAL);
+            DestroyIcon(volumeIcon);
+        }
+    }
+
+    CRect track(bounds);
+    track.left += iconSize + m_pMainFrame->m_dpi.ScaleX(8);
+    track.DeflateRect(0, m_pMainFrame->m_dpi.ScaleY(6), 0, m_pMainFrame->m_dpi.ScaleY(6));
+    if (track.Width() <= 0 || track.Height() <= 0) {
+        return;
+    }
+
+    const COLORREF trackColor = RGB(76, 76, 82);
+    const COLORREF progressColor = RGB(255, 149, 0);
+    CRgn trackRegion;
+    if (trackRegion.CreateRoundRectRgn(track.left, track.top, track.right, track.bottom,
+                                       track.Height(), track.Height())) {
+        CBrush trackBrush(trackColor);
+        dc.FillRgn(&trackRegion, &trackBrush);
+    }
+
+    int minimum = 0, maximum = 100;
+    m_volctrl.GetRange(minimum, maximum);
+    const int volume = std::clamp(m_volctrl.GetPos(), minimum, maximum);
+    const int progressX = track.left + (maximum > minimum
+                            ? (track.Width() * (volume - minimum)) / (maximum - minimum)
+                            : 0);
+    if (progressX > track.left) {
+        CRect progress(track);
+        progress.right = std::min<LONG>(track.right, static_cast<LONG>(progressX));
+        CRgn progressRegion;
+        if (progressRegion.CreateRoundRectRgn(progress.left, progress.top, progress.right, progress.bottom,
+                                              progress.Height(), progress.Height())) {
+            CBrush progressBrush(progressColor);
+            dc.FillRgn(&progressRegion, &progressBrush);
+        }
+    }
+
+    const int thumbSize = std::max<LONG>(6, m_pMainFrame->m_dpi.ScaleY(8));
+    CRect thumb(0, 0, thumbSize, thumbSize);
+    thumb.MoveToXY(progressX - thumbSize / 2, track.CenterPoint().y - thumbSize / 2);
+    CBrush thumbBrush(progressColor);
+    CPen thumbPen(PS_SOLID, 1, progressColor);
+    CBrush* oldBrush = dc.SelectObject(&thumbBrush);
+    CPen* oldPen = dc.SelectObject(&thumbPen);
+    dc.Ellipse(&thumb);
+    dc.SelectObject(oldPen);
+    dc.SelectObject(oldBrush);
+}
+
+void CPlayerToolBar::SetOverlayVolumeFromPoint(int x, const CRect& trackRect)
+{
+    if (trackRect.Width() <= 0) {
+        return;
+    }
+
+    int minimum = 0, maximum = 100;
+    m_volctrl.GetRange(minimum, maximum);
+    if (maximum <= minimum) {
+        return;
+    }
+
+    const LONG clampedX = std::clamp<LONG>(x, trackRect.left, trackRect.right);
+    const int volume = minimum + ((clampedX - trackRect.left) * (maximum - minimum)) / trackRect.Width();
+    m_volctrl.SetPosInternal(volume);
 }
 
 void CPlayerToolBar::OnSize(UINT nType, int cx, int cy)
@@ -939,6 +1224,7 @@ void CPlayerToolBar::SetPlayPauseActiveButton(UINT activeButtonId)
     // Set visibility states
     ctrl.HideButton(showButton, FALSE);  // Show
     ctrl.HideButton(hideButton, TRUE);   // Hide
+    m_pMainFrame->RefreshModernZOverlay();
 }
 
 inline bool IsPlayOrPause(UINT id) {
@@ -1033,7 +1319,11 @@ void CPlayerToolBar::OnUpdateCustomAction(CCmdUI* pCmdUI) {
         || pCmdUI->m_nID == ID_CUSTOM_ACTION3 && (s.nToolbarAction3 || s.nToolbarRightAction3)
         || pCmdUI->m_nID == ID_CUSTOM_ACTION4 && (s.nToolbarAction4 || s.nToolbarRightAction4);
 
+    const bool wasEnabled = (GetToolBarCtrl().GetState(pCmdUI->m_nID) & TBSTATE_ENABLED) != 0;
     pCmdUI->Enable(enable);
+    if (wasEnabled != enable) {
+        m_pMainFrame->RefreshModernZOverlay();
+    }
 }
 
 bool CPlayerToolBar::CmdIsMenu(int cmd) {
@@ -1083,6 +1373,7 @@ BOOL CPlayerToolBar::OnCustomAction(UINT nID) {
 BOOL CPlayerToolBar::OnVolumeUp(UINT nID)
 {
     m_volctrl.IncreaseVolume();
+    m_pMainFrame->RefreshModernZOverlay();
     // SetPosInternal posts the canonical WM_HSCROLL notification.
     return TRUE;
 }
@@ -1090,6 +1381,7 @@ BOOL CPlayerToolBar::OnVolumeUp(UINT nID)
 BOOL CPlayerToolBar::OnVolumeDown(UINT nID)
 {
     m_volctrl.DecreaseVolume();
+    m_pMainFrame->RefreshModernZOverlay();
     // SetPosInternal posts the canonical WM_HSCROLL notification.
     return TRUE;
 }
@@ -1486,6 +1778,8 @@ void CPlayerToolBar::ToolbarChange() {
 
     OnUpdateCmdUI(m_pMainFrame, FALSE); //useful for making sure button states are updated while in the options dialog
     Invalidate();
+    // The overlay mirrors the live toolbar sequence and must re-evaluate its fit after customization.
+    m_pMainFrame->UpdateModernZOverlay();
 }
 
 void CPlayerToolBar::OnTbnToolbarChange(NMHDR* pNMHDR, LRESULT* pResult) {

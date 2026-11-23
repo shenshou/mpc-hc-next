@@ -63,6 +63,8 @@ private:
     BOOL m_fSnapToDesktopEdges;
     BOOL m_fLimitWindowProportions;
     BOOL m_bHideWindowedControls;
+    BOOL m_bModernZControls;
+    BOOL m_bModernZAutoHide;
     BOOL m_bUseEnhancedTaskBar;
     BOOL m_bUseSMTC;
     // Custom view preset (hotkey 4) definition
@@ -97,6 +99,7 @@ public:
     afx_msg void OnPreviewClicked();
     afx_msg void OnTimeClicked();
     afx_msg void OnThemeClicked();
+    afx_msg void OnModernZControlsClicked();
     afx_msg void OnChngOSDCombo();
     void AdjustDynamicWidgets();
 };
