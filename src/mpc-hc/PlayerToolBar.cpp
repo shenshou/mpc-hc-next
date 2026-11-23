@@ -1094,9 +1094,18 @@ void CPlayerToolBar::DrawOverlayVolume(CDC& dc, const CRect& bounds) const
 
     const int iconSize = std::min(bounds.Height(), m_pMainFrame->m_dpi.ScaleY(18));
     const int iconY = bounds.CenterPoint().y - iconSize / 2;
-    const CImage& icon = IsMuted() ? volumeOff : volumeOn;
-    if (!icon.IsNull()) {
-        icon.Draw(dc.GetSafeHdc(), bounds.left, iconY, iconSize, iconSize);
+    CToolBarCtrl& toolbar = const_cast<CPlayerToolBar*>(this)->GetToolBarCtrl();
+    TBBUTTONINFO buttonInfo = {};
+    buttonInfo.cbSize = sizeof(buttonInfo);
+    buttonInfo.dwMask = TBIF_IMAGE;
+    if (m_pButtonsImages && m_pButtonsImages->GetSafeHandle()
+            && toolbar.GetButtonInfo(ID_VOLUME_MUTE, &buttonInfo) != -1
+            && buttonInfo.iImage >= 0 && buttonInfo.iImage < m_pButtonsImages->GetImageCount()) {
+        HICON volumeIcon = ImageList_GetIcon(m_pButtonsImages->GetSafeHandle(), buttonInfo.iImage, ILD_TRANSPARENT);
+        if (volumeIcon) {
+            DrawIconEx(dc.GetSafeHdc(), bounds.left, iconY, volumeIcon, iconSize, iconSize, 0, nullptr, DI_NORMAL);
+            DestroyIcon(volumeIcon);
+        }
     }
 
     CRect track(bounds);
