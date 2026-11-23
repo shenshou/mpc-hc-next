@@ -1199,6 +1199,7 @@ public:
     void UpdateControlState(UpdateControlTarget target);
     void UpdatePlayerUIAppearance();
     void UpdateModernZOverlay();
+    void OnModernZOverlayUnavailable();
     void NotifyModernZOverlayMouseMove(const CPoint& screenPoint);
     void NotifyModernZOverlayMouseLeave();
     void RefreshModernZOverlay();
