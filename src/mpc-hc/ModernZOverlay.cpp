@@ -544,8 +544,9 @@ bool CModernZOverlay::Render()
                                       m_hotButtonIndex == item.index,
                                       m_pressedButtonIndex == item.index);
         TBBUTTON stateButton = {};
-        if (m_pToolBar->GetOverlayButton(item.index, stateButton) && (stateButton.fsState & TBSTATE_ENABLED)) {
-            m_buttonHits.push_back({ item.index, item.command, buttonRect });
+        if (m_pToolBar->GetOverlayButton(item.index, stateButton)) {
+            const bool enabled = (stateButton.fsState & TBSTATE_ENABLED) != 0;
+            m_buttonHits.push_back({ item.index, item.command, buttonRect, enabled });
         }
         buttonX += item.width + item.gap;
     }
@@ -791,6 +792,9 @@ void CModernZOverlay::OnLButtonUp(UINT nFlags, CPoint point)
     }
 
     const int releasedIndex = HitTestButton(point);
+    const auto releasedButton = std::find_if(m_buttonHits.begin(), m_buttonHits.end(),
+                                             [&](const ButtonHit& hit) { return hit.index == releasedIndex; });
+    const bool releasedButtonEnabled = releasedButton != m_buttonHits.end() && releasedButton->enabled;
     const bool pressedVolumeIcon = m_pressedVolumeIcon;
     const bool releasedVolumeIcon = m_volumeIconRect.PtInRect(point);
     const UINT command = m_pressedCommand;
@@ -805,7 +809,7 @@ void CModernZOverlay::OnLButtonUp(UINT nFlags, CPoint point)
         CRect screenRect(m_volumeIconRect);
         ClientToScreen(&screenRect);
         m_pToolBar->DispatchOverlayButton(ID_VOLUME_MUTE, m_volumeButtonIndex, screenRect);
-    } else if (pressedIndex >= 0 && releasedIndex == pressedIndex && command != 0) {
+    } else if (pressedIndex >= 0 && releasedIndex == pressedIndex && command != 0 && releasedButtonEnabled) {
         CRect screenRect(buttonRect);
         ClientToScreen(&screenRect);
         m_inMenu = true;
@@ -877,7 +881,7 @@ void CModernZOverlay::OnRButtonUp(UINT nFlags, CPoint point)
     } else if (pressedIndex >= 0 && releasedIndex == pressedIndex) {
         const auto it = std::find_if(m_buttonHits.begin(), m_buttonHits.end(),
                                      [&](const ButtonHit& hit) { return hit.index == pressedIndex; });
-        if (it != m_buttonHits.end()) {
+        if (it != m_buttonHits.end() && it->enabled) {
             CRect screenRect(it->rect);
             ClientToScreen(&screenRect);
             m_inMenu = true;
