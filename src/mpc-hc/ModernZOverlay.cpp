@@ -53,6 +53,11 @@ CModernZOverlay::~CModernZOverlay()
 
 bool CModernZOverlay::CreateOverlayWindow(CWnd* parent)
 {
+    // Bind() may destroy and recreate this child window when the active video
+    // parent changes (for example, entering or leaving the separate fullscreen window).
+    m_bDestroying = false;
+    m_bHandlingRenderFailure = false;
+
     if (!parent || !::IsWindow(parent->GetSafeHwnd())) {
         return false;
     }
