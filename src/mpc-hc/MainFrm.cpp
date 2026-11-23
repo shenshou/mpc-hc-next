@@ -1891,6 +1891,12 @@ void CMainFrame::UpdateModernZOverlay()
     m_controls.SetModernZControlsHidden(ready);
 }
 
+void CMainFrame::OnModernZOverlayUnavailable()
+{
+    m_bModernZOverlayActive = false;
+    m_controls.SetModernZControlsHidden(false);
+}
+
 void CMainFrame::NotifyModernZOverlayMouseMove(const CPoint& screenPoint)
 {
     if (m_pModernZOverlay) {
