@@ -52,6 +52,7 @@ private:
         int index;
         UINT command;
         CRect rect;
+        bool enabled = false;
     };
 
     static constexpr UINT_PTR TIMER_HIDE = 1;
