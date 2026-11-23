@@ -874,7 +874,7 @@ void CPlayerSeekBar::DrawOverlay(CDC& dc, const CRect& bounds)
     const int seekPos = pointFromPosition(m_rtPosDraw);
     if (seekPos > bounds.left) {
         CRect progress(track);
-        progress.right = std::min(track.right, seekPos);
+        progress.right = std::min<LONG>(track.right, static_cast<LONG>(seekPos));
         fillRoundedRect(progress, progressColor);
     }
 
@@ -991,7 +991,7 @@ REFERENCE_TIME CPlayerSeekBar::PositionFromOverlayPoint(int x, const CRect& boun
         return m_rtStart;
     }
 
-    const int clampedX = std::clamp(x, bounds.left, bounds.right);
+    const LONG clampedX = std::clamp<LONG>(x, bounds.left, bounds.right);
     return m_rtStart + static_cast<REFERENCE_TIME>(
         (static_cast<__int64>(clampedX - bounds.left) * (m_rtStop - m_rtStart)) / bounds.Width());
 }
