@@ -1132,7 +1132,7 @@ void CPlayerToolBar::DrawOverlayVolume(CDC& dc, const CRect& bounds) const
                             : 0);
     if (progressX > track.left) {
         CRect progress(track);
-        progress.right = std::min(track.right, progressX);
+        progress.right = std::min<LONG>(track.right, static_cast<LONG>(progressX));
         CRgn progressRegion;
         if (progressRegion.CreateRoundRectRgn(progress.left, progress.top, progress.right, progress.bottom,
                                               progress.Height(), progress.Height())) {
@@ -1165,7 +1165,7 @@ void CPlayerToolBar::SetOverlayVolumeFromPoint(int x, const CRect& trackRect)
         return;
     }
 
-    const int clampedX = std::clamp(x, trackRect.left, trackRect.right);
+    const LONG clampedX = std::clamp<LONG>(x, trackRect.left, trackRect.right);
     const int volume = minimum + ((clampedX - trackRect.left) * (maximum - minimum)) / trackRect.Width();
     m_volctrl.SetPosInternal(volume);
 }
