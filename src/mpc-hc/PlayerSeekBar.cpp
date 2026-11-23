@@ -1625,7 +1625,7 @@ void CPlayerSeekBar::PreviewWindowShowAt(REFERENCE_TIME rtPos, bool allowDraggin
         return;
     }
 
-    REFERENCE_TIME newpos = std::clamp(rtPos, 0LL, m_rtStop);
+    REFERENCE_TIME newpos = std::clamp(rtPos, m_rtStart, m_rtStop);
     if (newpos != m_pos_preview && GetKeyState(VK_SHIFT) >= 0) {
         newpos = m_pMainFrame->GetClosestKeyFramePreview(newpos);
     }
