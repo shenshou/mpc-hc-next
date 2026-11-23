@@ -954,6 +954,11 @@ void CModernZOverlay::OnTimer(UINT_PTR nIDEvent)
     }
     if (nIDEvent == TIMER_HIDE) {
         KillTimer(TIMER_HIDE);
+        // The child overlay moves with its video parent even when it is not rendered.
+        // Refresh its screen bounds before deciding whether the pointer is still over it.
+        if (::IsWindow(m_hWnd)) {
+            GetWindowRect(&m_screenRect);
+        }
         CPoint cursor;
         const bool cursorInsideOverlay = GetCursorPos(&cursor) && m_screenRect.PtInRect(cursor);
         if (m_autoHide && !cursorInsideOverlay && !m_draggingSeek && !m_draggingVolume && !m_pressedVolumeIcon
