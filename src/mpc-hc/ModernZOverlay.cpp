@@ -406,6 +406,13 @@ bool CModernZOverlay::Render()
         return false;
     }
 
+    // The video parent can move without changing the overlay's client bounds.
+    // Refresh the screen-space destination before every UpdateLayeredWindow call,
+    // otherwise a later repaint can move the child overlay back to stale coordinates.
+    if (!GetWindowRect(&m_screenRect)) {
+        return false;
+    }
+
     CRect clientRect;
     GetClientRect(&clientRect);
     const int width = clientRect.Width();
