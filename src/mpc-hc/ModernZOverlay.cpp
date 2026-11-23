@@ -201,7 +201,9 @@ void CModernZOverlay::NotifyVideoMouseMove(const CPoint& screenPoint)
     }
 
     if (m_screenRect.PtInRect(screenPoint)) {
-        ShowOverlay();
+        if (!IsWindowVisible()) {
+            ShowOverlay();
+        }
     } else if (IsWindowVisible()) {
         KillTimer(TIMER_BUTTON_TOOLTIP);
         m_hoverTooltipButtonIndex = -1;
