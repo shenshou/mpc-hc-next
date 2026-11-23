@@ -76,7 +76,7 @@ bool CModernZOverlay::CreateOverlayWindow(CWnd* parent)
         m_volumeToolInfo.uId = 1;
         m_volumeToolInfo.hinst = AfxGetInstanceHandle();
         m_volumeToolInfo.lpszText = const_cast<LPTSTR>(_T(""));
-        m_volumeTooltip.SendMessage(TTM_ADDTOOL, 0, (LPARAM)&m_volumeToolInfo);
+        m_volumeToolRegistered = m_volumeTooltip.SendMessage(TTM_ADDTOOL, 0, (LPARAM)&m_volumeToolInfo) != FALSE;
     }
     m_available = true;
     return true;
@@ -341,7 +341,7 @@ void CModernZOverlay::UpdateVolumeFromPoint(int x)
 
 void CModernZOverlay::ShowVolumeTooltip(const CPoint& screenPoint)
 {
-    if (!m_volumeTooltip.GetSafeHwnd()) {
+    if (!m_volumeTooltip.GetSafeHwnd() || !m_volumeToolRegistered) {
         return;
     }
 
@@ -367,7 +367,7 @@ void CModernZOverlay::ShowVolumeTooltip(const CPoint& screenPoint)
 
 void CModernZOverlay::ShowButtonTooltip(int buttonIndex, const CPoint& screenPoint)
 {
-    if (!m_volumeTooltip.GetSafeHwnd()) {
+    if (!m_volumeTooltip.GetSafeHwnd() || !m_volumeToolRegistered) {
         return;
     }
 
@@ -387,7 +387,10 @@ void CModernZOverlay::ShowButtonTooltip(int buttonIndex, const CPoint& screenPoi
     const DWORD bubbleSizeValue = static_cast<DWORD>(m_volumeTooltip.SendMessage(TTM_GETBUBBLESIZE, 0, (LPARAM)&m_volumeToolInfo));
     const CSize bubbleSize(LOWORD(bubbleSizeValue), HIWORD(bubbleSizeValue));
     MONITORINFO monitorInfo = { sizeof(monitorInfo) };
-    GetMonitorInfoW(MonitorFromPoint(screenPoint, MONITOR_DEFAULTTONEAREST), &monitorInfo);
+    if (!GetMonitorInfoW(MonitorFromPoint(screenPoint, MONITOR_DEFAULTTONEAREST), &monitorInfo)) {
+        HideVolumeTooltip();
+        return;
+    }
     CPoint position(screenPoint.x - bubbleSize.cx / 2,
                     screenPoint.y - bubbleSize.cy - m_pMainFrame->m_dpi.ScaleY(8));
     position.x = std::max(monitorInfo.rcWork.left + 5,
