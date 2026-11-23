@@ -264,6 +264,13 @@ void CModernZOverlay::ShowOverlay()
 
 void CModernZOverlay::HideOverlay()
 {
+    // A geometry fallback or parent switch can hide the overlay mid-interaction.
+    // End the seek/volume drag and release capture before making the window invisible.
+    EndActiveDrag();
+    if (GetCapture() == this) {
+        ReleaseCapture();
+    }
+
     KillTimer(TIMER_HIDE);
     KillTimer(TIMER_TOOLTIP);
     KillTimer(TIMER_VOLUME_TOOLTIP);
@@ -959,6 +966,12 @@ void CModernZOverlay::OnPaint()
 
 void CModernZOverlay::OnDestroy()
 {
+    // Do not leave the native seekbar in its dragging state if its overlay is destroyed.
+    EndActiveDrag();
+    if (GetCapture() == this) {
+        ReleaseCapture();
+    }
+
     m_pSeekBar->HideOverlayTooltip();
     m_pMainFrame->PreviewWindowHide();
     KillTimer(TIMER_HIDE);
