@@ -102,12 +102,15 @@ private:
     TOOLINFO m_volumeToolInfo = {};
     CToolTipCtrl m_volumeTooltip;
     bool m_available = false;
+    bool m_bHandlingRenderFailure = false;
+    bool m_bDestroying = false;
 
     bool CreateOverlayWindow(CWnd* parent);
     void ShowOverlay();
     void HideOverlay();
     void StartHideTimer();
     bool Render();
+    bool RenderInternal();
     int HitTestButton(const CPoint& point) const;
     void UpdateVolumeFromPoint(int x);
     void ShowVolumeTooltip(const CPoint& screenPoint);
