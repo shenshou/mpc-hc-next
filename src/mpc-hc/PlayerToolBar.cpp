@@ -1051,7 +1051,7 @@ bool CPlayerToolBar::DrawOverlayButton(CDC& dc, int index, const CRect& rect, bo
     const bool enabled = (button.fsState & TBSTATE_ENABLED) != 0;
     const bool checked = (button.fsState & TBSTATE_CHECKED) != 0;
     const bool bModernZ = AfxGetAppSettings().bModernZControls;
-    if (bModernZ && (checked || hot || pressed)) {
+    if (bModernZ && (checked || (enabled && (hot || pressed)))) {
         const COLORREF color = pressed ? RGB(55, 55, 61)
                                        : checked ? RGB(66, 66, 72)
                                                  : RGB(45, 45, 51);
