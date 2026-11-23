@@ -168,8 +168,12 @@ bool CModernZOverlay::SetBounds(const CRect& videoRect)
     m_screenRect = bounds;
     m_pVideoParent->ClientToScreen(&m_screenRect);
 
-    SetWindowPos(&wndTop, bounds.left, bounds.top, bounds.Width(), bounds.Height(),
-                 SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+    if (!SetWindowPos(&wndTop, bounds.left, bounds.top, bounds.Width(), bounds.Height(),
+                      SWP_NOACTIVATE | SWP_NOOWNERZORDER)) {
+        m_available = false;
+        HideOverlay();
+        return false;
+    }
     if (!Render()) {
         m_available = false;
         HideOverlay();
@@ -354,6 +358,7 @@ void CModernZOverlay::ShowVolumeTooltip(const CPoint& screenPoint)
     const CSize bubbleSize(LOWORD(bubbleSizeValue), HIWORD(bubbleSizeValue));
     MONITORINFO monitorInfo = { sizeof(monitorInfo) };
     if (!GetMonitorInfoW(MonitorFromPoint(screenPoint, MONITOR_DEFAULTTONEAREST), &monitorInfo)) {
+        HideVolumeTooltip();
         return;
     }
     CPoint position(screenPoint.x - bubbleSize.cx / 2,
