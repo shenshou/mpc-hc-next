@@ -426,6 +426,35 @@ void CModernZOverlay::EndActiveDrag()
 
 bool CModernZOverlay::Render()
 {
+    if (m_bDestroying || m_bHandlingRenderFailure) {
+        return false;
+    }
+
+    if (RenderInternal()) {
+        return true;
+    }
+
+    // A layered-window update can fail after initial setup (for example, if
+    // Windows cannot allocate the backing bitmap). Never leave the native
+    // controls hidden when the overlay can no longer be rendered.
+    m_bHandlingRenderFailure = true;
+    m_available = false;
+    ShowWindow(SW_HIDE);
+    EndActiveDrag();
+    if (GetCapture() == this) {
+        ReleaseCapture();
+    }
+    KillTimer(TIMER_HIDE);
+    KillTimer(TIMER_TOOLTIP);
+    KillTimer(TIMER_VOLUME_TOOLTIP);
+    KillTimer(TIMER_BUTTON_TOOLTIP);
+    m_pMainFrame->OnModernZOverlayUnavailable();
+    m_bHandlingRenderFailure = false;
+    return false;
+}
+
+bool CModernZOverlay::RenderInternal()
+{
     if (!::IsWindow(m_hWnd) || !m_pVideoParent || !::IsWindow(m_pVideoParent->GetSafeHwnd())) {
         return false;
     }
@@ -994,6 +1023,8 @@ void CModernZOverlay::OnPaint()
 
 void CModernZOverlay::OnDestroy()
 {
+    m_bDestroying = true;
+
     // Do not leave the native seekbar in its dragging state if its overlay is destroyed.
     EndActiveDrag();
     if (GetCapture() == this) {
