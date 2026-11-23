@@ -201,6 +201,10 @@ void CModernZOverlay::NotifyVideoMouseMove(const CPoint& screenPoint)
     }
 
     if (m_screenRect.PtInRect(screenPoint)) {
+        // The pointer may re-enter a transparent part of this layered child window
+        // through the video parent, without generating WM_MOUSEMOVE for the overlay.
+        // Cancel a pending hide even when the overlay is already visible.
+        KillTimer(TIMER_HIDE);
         if (!IsWindowVisible()) {
             ShowOverlay();
         }
@@ -939,7 +943,9 @@ void CModernZOverlay::OnTimer(UINT_PTR nIDEvent)
     }
     if (nIDEvent == TIMER_HIDE) {
         KillTimer(TIMER_HIDE);
-        if (m_autoHide && !m_draggingSeek && !m_draggingVolume && !m_pressedVolumeIcon
+        CPoint cursor;
+        const bool cursorInsideOverlay = GetCursorPos(&cursor) && m_screenRect.PtInRect(cursor);
+        if (m_autoHide && !cursorInsideOverlay && !m_draggingSeek && !m_draggingVolume && !m_pressedVolumeIcon
                 && m_pressedButtonIndex < 0 && !m_rightPressedVolume && !m_rightPressedTime && m_rightPressedButtonIndex < 0
                 && !m_inMenu) {
             HideOverlay();
