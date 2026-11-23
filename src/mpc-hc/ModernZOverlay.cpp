@@ -475,9 +475,7 @@ bool CModernZOverlay::RenderInternal()
     // The video parent can move without changing the overlay's client bounds.
     // Refresh the screen-space destination before every UpdateLayeredWindow call,
     // otherwise a later repaint can move the child overlay back to stale coordinates.
-    if (!GetWindowRect(&m_screenRect)) {
-        return false;
-    }
+    GetWindowRect(&m_screenRect);
 
     CRect clientRect;
     GetClientRect(&clientRect);
@@ -589,7 +587,7 @@ bool CModernZOverlay::RenderInternal()
             continue;
         }
         buttonWidth = std::clamp(buttonWidth, m_pMainFrame->m_dpi.ScaleX(28), m_pMainFrame->m_dpi.ScaleX(42));
-        pending.push_back({ i, button.idCommand, buttonWidth, 0 });
+        pending.push_back({ i, static_cast<UINT>(button.idCommand), buttonWidth, 0 });
         totalWidth += buttonWidth;
     }
 
@@ -822,19 +820,17 @@ void CModernZOverlay::OnMButtonDown(UINT nFlags, CPoint point)
     }
 }
 
-BOOL CModernZOverlay::OnXButtonDown(UINT nFlags, UINT nButton, CPoint point)
+void CModernZOverlay::OnXButtonDown(UINT nFlags, UINT nButton, CPoint point)
 {
     UNREFERENCED_PARAMETER(nFlags);
     if (m_seekHitRect.PtInRect(point)) {
         m_pSeekBar->HandleOverlayXButton(nButton);
-        return TRUE;
     }
-    return FALSE;
 }
 
-BOOL CModernZOverlay::OnXButtonDblClk(UINT nFlags, UINT nButton, CPoint point)
+void CModernZOverlay::OnXButtonDblClk(UINT nFlags, UINT nButton, CPoint point)
 {
-    return OnXButtonDown(nFlags, nButton, point);
+    OnXButtonDown(nFlags, nButton, point);
 }
 
 void CModernZOverlay::OnLButtonUp(UINT nFlags, CPoint point)
