@@ -15,6 +15,8 @@ class CPlayerToolBar;
 
 class CModernZOverlay : public CWnd
 {
+    DECLARE_DYNAMIC(CModernZOverlay)
+
 public:
     CModernZOverlay(CMainFrame* pMainFrame, CPlayerSeekBar* pSeekBar, CPlayerToolBar* pToolBar);
     virtual ~CModernZOverlay();
@@ -35,8 +37,8 @@ protected:
     afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
     afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
     afx_msg void OnMButtonDown(UINT nFlags, CPoint point);
-    afx_msg BOOL OnXButtonDown(UINT nFlags, UINT nButton, CPoint point);
-    afx_msg BOOL OnXButtonDblClk(UINT nFlags, UINT nButton, CPoint point);
+    afx_msg void OnXButtonDown(UINT nFlags, UINT nButton, CPoint point);
+    afx_msg void OnXButtonDblClk(UINT nFlags, UINT nButton, CPoint point);
     afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
     afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
     afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
