@@ -1004,7 +1004,9 @@ void CPlayerSeekBar::EndOverlayDrag()
 
     m_bDraggingThumb = false;
     m_bOverlayDragFirstUpdate = false;
-    CheckScrollDistance(CPoint(0, 0), std::min(2500000LL, m_rtStop / 100), 0LL);
+    if (m_bHasDuration && m_rtStart < m_rtStop) {
+        CheckScrollDistance(CPoint(0, 0), std::min(2500000LL, m_rtStop / 100), 0LL);
+    }
     pauseAfterFirstScroll = false;
     if (pausedForScrolling) {
         pausedForScrolling = false;
