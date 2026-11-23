@@ -344,9 +344,20 @@ void CModernZOverlay::ShowVolumeTooltip(const CPoint& screenPoint)
     m_volumeToolInfo.lpszText = const_cast<LPTSTR>((LPCTSTR)m_volumeTooltipText);
     m_volumeTooltip.SendMessage(TTM_UPDATETIPTEXT, 0, (LPARAM)&m_volumeToolInfo);
     m_volumeTooltip.SendMessage(TTM_TRACKACTIVATE, TRUE, (LPARAM)&m_volumeToolInfo);
-    m_volumeTooltip.SendMessage(TTM_TRACKPOSITION, 0,
-                                MAKELPARAM(screenPoint.x - m_pMainFrame->m_dpi.ScaleX(24),
-                                           screenPoint.y - m_pMainFrame->m_dpi.ScaleY(28)));
+
+    const DWORD bubbleSizeValue = static_cast<DWORD>(m_volumeTooltip.SendMessage(TTM_GETBUBBLESIZE, 0, (LPARAM)&m_volumeToolInfo));
+    const CSize bubbleSize(LOWORD(bubbleSizeValue), HIWORD(bubbleSizeValue));
+    MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+    if (!GetMonitorInfoW(MonitorFromPoint(screenPoint, MONITOR_DEFAULTTONEAREST), &monitorInfo)) {
+        return;
+    }
+    CPoint position(screenPoint.x - bubbleSize.cx / 2,
+                    screenPoint.y - bubbleSize.cy - m_pMainFrame->m_dpi.ScaleY(8));
+    position.x = std::max(monitorInfo.rcWork.left + 5,
+                          std::min(position.x, monitorInfo.rcWork.right - bubbleSize.cx - 5));
+    position.y = std::max(monitorInfo.rcWork.top + 5,
+                          std::min(position.y, monitorInfo.rcWork.bottom - bubbleSize.cy - 5));
+    m_volumeTooltip.SendMessage(TTM_TRACKPOSITION, 0, MAKELPARAM(position.x, position.y));
 }
 
 void CModernZOverlay::ShowButtonTooltip(int buttonIndex, const CPoint& screenPoint)
