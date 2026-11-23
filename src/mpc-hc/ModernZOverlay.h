@@ -101,6 +101,7 @@ private:
     CString m_volumeTooltipText;
     TOOLINFO m_volumeToolInfo = {};
     CToolTipCtrl m_volumeTooltip;
+    bool m_volumeToolRegistered = false;
     bool m_available = false;
     bool m_bHandlingRenderFailure = false;
     bool m_bDestroying = false;
